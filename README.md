@@ -1,4 +1,4 @@
-# scms-api
+# scms-api(スケルトン)
 
 ミニ契約管理システムAPI
 
