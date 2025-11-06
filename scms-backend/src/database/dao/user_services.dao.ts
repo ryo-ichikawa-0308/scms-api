@@ -44,10 +44,10 @@ export class UserServicesDao {
         take: dto.limit,
       });
 
-      return userServices as UserServices[];
+      return userServices;
     } catch (error) {
-      console.error('selectUserServices error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -69,8 +69,8 @@ export class UserServicesDao {
       const count = await this.client.userServices.count({ where });
       return count;
     } catch (error) {
-      console.error('countUserServices error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -89,21 +89,26 @@ export class UserServicesDao {
     try {
       const userService = await prismaTx.userServices.create({
         data: {
-          ...(dto as Prisma.UserServicesCreateInput),
+          usersId: dto.usersId,
+          servicesId: dto.servicesId,
+          stock: dto.stock,
+          registeredAt: dto.registeredAt,
+          registeredBy: dto.registeredBy,
+          isDeleted: false,
         },
       });
-      return userService as UserServices;
+      return userService;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException('一意制約違反が発生しました。');
+          throw new ConflictException(error, '一意制約違反が発生しました。');
         }
         if (error.code === 'P2003') {
-          throw new BadRequestException('外部キー違反が発生しました。');
+          throw new BadRequestException(error, '外部キー違反が発生しました。');
         }
       }
-      console.error('createUserServices error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -125,21 +130,24 @@ export class UserServicesDao {
         where: { id },
         data: data as Prisma.UserServicesUpdateInput,
       });
-      return userService as UserServices;
+      return userService;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException('一意制約違反が発生しました。');
+          throw new ConflictException(error, '一意制約違反が発生しました。');
         }
         if (error.code === 'P2003') {
-          throw new BadRequestException('外部キー違反が発生しました。');
+          throw new BadRequestException(error, '外部キー違反が発生しました。');
         }
         if (error.code === 'P2025') {
-          throw new NotFoundException('更新対象のレコードが見つかりません。');
+          throw new NotFoundException(
+            error,
+            '更新対象のレコードが見つかりません。',
+          );
         }
       }
-      console.error('updateUserServices error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -162,17 +170,18 @@ export class UserServicesDao {
           isDeleted: true,
         },
       });
-      return userService as UserServices;
+      return userService;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(
+            error,
             '論理削除対象のレコードが見つかりません。',
           );
         }
       }
-      console.error('softDeleteUserServices error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -192,22 +201,24 @@ export class UserServicesDao {
       const userService = await prismaTx.userServices.delete({
         where: { id },
       });
-      return userService as UserServices;
+      return userService;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(
+            error,
             '物理削除対象のレコードが見つかりません。',
           );
         }
         if (error.code === 'P2003') {
           throw new BadRequestException(
+            error,
             '外部キー制約により、物理削除できませんでした。',
           );
         }
       }
-      console.error('hardDeleteUserServices error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
