@@ -18,7 +18,7 @@ import {
 } from '@nestjs/common';
 import { Contracts } from '@prisma/client';
 
-// モックPrismaService
+// 契約情報のモック
 const mockContracts: Contracts[] = [
   {
     id: 'uuid-con-1',
