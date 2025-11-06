@@ -114,10 +114,10 @@ export class UsersDao {
     updateData: Users,
   ): Promise<Users> {
     try {
-      const { id, ...data } = updateData;
+      const id = updateData.id;
       const user = await prismaTx.users.update({
         where: { id },
-        data: data as Prisma.UsersUpdateInput,
+        data: updateData,
       });
       return user;
     } catch (error) {

@@ -41,6 +41,7 @@ const mockUsers: Users[] = [
   },
 ];
 
+// Prisma関連のモック
 const mockPrismaService = {
   $connect: jest.fn().mockResolvedValue(undefined),
   $disconnect: jest.fn().mockResolvedValue(undefined),
@@ -71,6 +72,7 @@ const mockPrismaError = (code: string) => {
     },
   } as any);
 };
+
 describe('UsersDaoのテスト', () => {
   let dao: UsersDao;
   let prismaService: typeof mockPrismaService;
@@ -210,14 +212,12 @@ describe('UsersDaoのテスト', () => {
           id: 'uuid-new',
           email: createDto.email,
         };
-        // mockPrismaTx は users モデルのモック
         jest
           .spyOn(mockUsersTxModel, 'create')
           .mockResolvedValueOnce(createdUser);
 
         // DAOメソッドの呼び出し
         const result = await dao.createUsers(mockPrismaTx as any, createDto);
-
         expect(result.email).toBe(createDto.email);
       });
     });

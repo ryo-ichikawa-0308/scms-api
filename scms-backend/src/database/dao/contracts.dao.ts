@@ -42,10 +42,10 @@ export class ContractsDao {
         take: dto.limit,
       });
 
-      return contracts as Contracts[];
+      return contracts;
     } catch (error) {
-      console.error('selectContracts error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -67,8 +67,8 @@ export class ContractsDao {
       const count = await this.client.contracts.count({ where });
       return count;
     } catch (error) {
-      console.error('countContracts error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -87,21 +87,26 @@ export class ContractsDao {
     try {
       const contract = await prismaTx.contracts.create({
         data: {
-          ...(dto as Prisma.ContractsCreateInput),
+          usersId: dto.usersId,
+          userServicesId: dto.userServicesId,
+          quantity: dto.quantity,
+          registeredAt: dto.registeredAt,
+          registeredBy: dto.registeredBy,
+          isDeleted: false,
         },
       });
-      return contract as Contracts;
+      return contract;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException('一意制約違反が発生しました。');
+          throw new ConflictException(error, '一意制約違反が発生しました。');
         }
         if (error.code === 'P2003') {
-          throw new BadRequestException('外部キー違反が発生しました。');
+          throw new BadRequestException(error, '外部キー違反が発生しました。');
         }
       }
-      console.error('createContracts error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -123,21 +128,24 @@ export class ContractsDao {
         where: { id },
         data: data as Prisma.ContractsUpdateInput,
       });
-      return contract as Contracts;
+      return contract;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException('一意制約違反が発生しました。');
+          throw new ConflictException(error, '一意制約違反が発生しました。');
         }
         if (error.code === 'P2003') {
-          throw new BadRequestException('外部キー違反が発生しました。');
+          throw new BadRequestException(error, '外部キー違反が発生しました。');
         }
         if (error.code === 'P2025') {
-          throw new NotFoundException('更新対象のレコードが見つかりません。');
+          throw new NotFoundException(
+            error,
+            '更新対象のレコードが見つかりません。',
+          );
         }
       }
-      console.error('updateContracts error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -160,17 +168,18 @@ export class ContractsDao {
           isDeleted: true,
         },
       });
-      return contract as Contracts;
+      return contract;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(
+            error,
             '論理削除対象のレコードが見つかりません。',
           );
         }
       }
-      console.error('softDeleteContracts error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -190,22 +199,24 @@ export class ContractsDao {
       const contract = await prismaTx.contracts.delete({
         where: { id },
       });
-      return contract as Contracts;
+      return contract;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(
+            error,
             '物理削除対象のレコードが見つかりません。',
           );
         }
         if (error.code === 'P2003') {
           throw new BadRequestException(
+            error,
             '外部キー制約により、物理削除できませんでした。',
           );
         }
       }
-      console.error('hardDeleteContracts error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }

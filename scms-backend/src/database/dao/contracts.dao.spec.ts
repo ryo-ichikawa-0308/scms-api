@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContractsDao } from 'src/database/dao/contracts.dao';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -40,22 +44,36 @@ const mockContracts: Contracts[] = [
   },
 ];
 
+// Prisma関連のモック
 const mockPrismaService = {
+  $connect: jest.fn().mockResolvedValue(undefined),
+  $disconnect: jest.fn().mockResolvedValue(undefined),
+  $on: jest.fn(),
+  $use: jest.fn(),
+  $transaction: jest.fn(),
   contracts: {
-    findMany: jest.fn().mockImplementation((options) => {
-      const filtered = mockContracts.filter((u) => u.isDeleted === true);
-      return Promise.resolve(
-        filtered.slice(options.skip || 0, options.take || 10),
-      );
-    }),
-    count: jest.fn().mockImplementation((options) => {
-      const filtered = mockContracts.filter((u) => u.isDeleted === true);
-      return Promise.resolve(filtered.length);
-    }),
+    findMany: jest.fn(),
+    count: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   },
+};
+
+const mockContractsTxModel = mockPrismaService.contracts;
+const mockPrismaTx = {
+  contracts: mockContractsTxModel,
+} as unknown as PrismaTransaction;
+
+const { PrismaClientKnownRequestError } = jest.requireActual('@prisma/client');
+const mockPrismaError = (code: string) => {
+  return new PrismaClientKnownRequestError(`Mock error for code ${code}`, {
+    code: code,
+    clientVersion: 'test-version',
+    meta: {
+      target: code === 'P2002' ? ['email'] : undefined,
+    },
+  } as any);
 };
 
 describe('ContractsDaoのテスト', () => {
@@ -87,7 +105,7 @@ describe('ContractsDaoのテスト', () => {
         expect(result.length).toBe(1);
         expect(mockPrismaService.contracts.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
-            where: { isDeleted: 0, id: 'uuid-con-1' },
+            where: { isDeleted: false, id: 'uuid-con-1' },
           }),
         );
       });
@@ -135,15 +153,13 @@ describe('ContractsDaoのテスト', () => {
     });
   });
 
-  const mockPrismaTx =
-    mockPrismaService.contracts as unknown as PrismaTransaction['contracts'];
   const createDto: CreateContractsDto = {
     usersId: 'user-c',
     userServicesId: 'usv-z',
     quantity: 20,
     registeredAt: new Date().toISOString(),
     registeredBy: 'user',
-    isDeleted: 0,
+    isDeleted: false,
   };
 
   describe('createContractsのテスト', () => {
@@ -154,7 +170,9 @@ describe('ContractsDaoのテスト', () => {
           id: 'uuid-new',
           usersId: createDto.usersId,
         };
-        mockPrismaTx.create.mockResolvedValueOnce(createdContract);
+        jest
+          .spyOn(mockContractsTxModel, 'create')
+          .mockResolvedValueOnce(createdContract);
         const result = await dao.createContracts(
           mockPrismaTx as any,
           createDto,
@@ -164,21 +182,25 @@ describe('ContractsDaoのテスト', () => {
     });
     describe('異常系', () => {
       test('一意制約違反が発生した場合', async () => {
-        mockPrismaTx.create.mockRejectedValueOnce({ code: 'P2002' });
+        jest
+          .spyOn(mockContractsTxModel, 'create')
+          .mockRejectedValueOnce(mockPrismaError('P2002'));
         await expect(
           dao.createContracts(mockPrismaTx as any, createDto),
         ).rejects.toThrow(ConflictException);
       });
       test('外部キー違反が発生した場合', async () => {
-        mockPrismaTx.create.mockRejectedValueOnce({ code: 'P2003' });
+        jest
+          .spyOn(mockContractsTxModel, 'create')
+          .mockRejectedValueOnce(mockPrismaError('P2003'));
         await expect(
           dao.createContracts(mockPrismaTx as any, createDto),
         ).rejects.toThrow(BadRequestException);
       });
       test('DB接続エラーが発生した場合', async () => {
-        mockPrismaTx.create.mockRejectedValueOnce(
-          new Error('DB connection failed'),
-        );
+        jest
+          .spyOn(mockContractsTxModel, 'create')
+          .mockRejectedValueOnce(new Error('DB connection failed'));
         await expect(
           dao.createContracts(mockPrismaTx as any, createDto),
         ).rejects.toThrow(InternalServerErrorException);
@@ -191,7 +213,9 @@ describe('ContractsDaoのテスト', () => {
   describe('updateContractsのテスト', () => {
     describe('正常系', () => {
       test('正常に更新ができる場合', async () => {
-        mockPrismaTx.update.mockResolvedValueOnce(updateData);
+        jest
+          .spyOn(mockContractsTxModel, 'update')
+          .mockResolvedValueOnce(updateData);
         const result = await dao.updateContracts(
           mockPrismaTx as any,
           updateData,
@@ -201,15 +225,17 @@ describe('ContractsDaoのテスト', () => {
     });
     describe('異常系', () => {
       test('更新レコードが見つからない場合', async () => {
-        mockPrismaTx.update.mockRejectedValueOnce({ code: 'P2025' });
+        jest
+          .spyOn(mockContractsTxModel, 'update')
+          .mockRejectedValueOnce(mockPrismaError('P2025'));
         await expect(
           dao.updateContracts(mockPrismaTx as any, updateData),
         ).rejects.toThrow(NotFoundException);
       });
       test('DB接続エラーが発生した場合', async () => {
-        mockPrismaTx.update.mockRejectedValueOnce(
-          new Error('DB connection failed'),
-        );
+        jest
+          .spyOn(mockContractsTxModel, 'update')
+          .mockRejectedValueOnce(new Error('DB connection failed'));
         await expect(
           dao.updateContracts(mockPrismaTx as any, updateData),
         ).rejects.toThrow(InternalServerErrorException);
@@ -220,18 +246,22 @@ describe('ContractsDaoのテスト', () => {
   describe('softDeleteContractsのテスト', () => {
     describe('正常系', () => {
       test('正常に論理削除ができる場合', async () => {
-        const softDeletedContract = { ...mockContracts[0], isDeleted: 1 };
-        mockPrismaTx.update.mockResolvedValueOnce(softDeletedContract);
+        const softDeletedContract = { ...mockContracts[0], isDeleted: true };
+        jest
+          .spyOn(mockContractsTxModel, 'update')
+          .mockResolvedValueOnce(softDeletedContract);
         const result = await dao.softDeleteContracts(
           mockPrismaTx as any,
           'uuid-con-1',
         );
-        expect(result.isDeleted).toBe(1);
+        expect(result.isDeleted).toBe(true);
       });
     });
     describe('異常系', () => {
       test('論理削除レコードが見つからない場合', async () => {
-        mockPrismaTx.update.mockRejectedValueOnce({ code: 'P2025' });
+        jest
+          .spyOn(mockContractsTxModel, 'update')
+          .mockRejectedValueOnce(mockPrismaError('P2025'));
         await expect(
           dao.softDeleteContracts(mockPrismaTx as any, 'uuid-not-found'),
         ).rejects.toThrow(NotFoundException);
@@ -242,7 +272,9 @@ describe('ContractsDaoのテスト', () => {
   describe('hardDeleteContractsのテスト', () => {
     describe('正常系', () => {
       test('正常に物理削除ができる場合', async () => {
-        mockPrismaTx.delete.mockResolvedValueOnce(mockContracts[0]);
+        jest
+          .spyOn(mockContractsTxModel, 'delete')
+          .mockResolvedValueOnce(mockContracts[0]);
         const result = await dao.hardDeleteContracts(
           mockPrismaTx as any,
           'uuid-con-1',
@@ -252,15 +284,17 @@ describe('ContractsDaoのテスト', () => {
     });
     describe('異常系', () => {
       test('物理削除レコードが見つからない場合', async () => {
-        mockPrismaTx.delete.mockRejectedValueOnce({ code: 'P2025' });
+        jest
+          .spyOn(mockContractsTxModel, 'delete')
+          .mockRejectedValueOnce(mockPrismaError('P2025'));
         await expect(
           dao.hardDeleteContracts(mockPrismaTx as any, 'uuid-not-found'),
         ).rejects.toThrow(NotFoundException);
       });
       test('DB接続エラーが発生した場合', async () => {
-        mockPrismaTx.delete.mockRejectedValueOnce(
-          new Error('DB connection failed'),
-        );
+        jest
+          .spyOn(mockContractsTxModel, 'delete')
+          .mockRejectedValueOnce(new Error('DB connection failed'));
         await expect(
           dao.hardDeleteContracts(mockPrismaTx as any, 'uuid-con-1'),
         ).rejects.toThrow(InternalServerErrorException);
