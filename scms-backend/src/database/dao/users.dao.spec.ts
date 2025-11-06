@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { Users } from '@prisma/client';
 
-// モックPrismaServiceのコアデータ
+// ユーザー情報のモック
 const mockUsers: Users[] = [
   {
     id: 'uuid-1',
