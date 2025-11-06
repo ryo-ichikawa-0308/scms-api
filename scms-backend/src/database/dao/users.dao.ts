@@ -13,11 +13,8 @@ import { Prisma, Users } from '@prisma/client';
 @Injectable()
 export class UsersDao {
   private readonly client: PrismaService;
-  private readonly prismaTx: PrismaTransaction;
-
   constructor(client: PrismaService) {
     this.client = client;
-    // prismaTxはトランザクションメソッドでのみ使用
   }
 
   /**
@@ -40,10 +37,10 @@ export class UsersDao {
         take: dto.limit,
       });
 
-      return users as Users[];
+      return users;
     } catch (error) {
-      console.error('selectUsers error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -66,8 +63,8 @@ export class UsersDao {
       const count = await this.client.users.count({ where });
       return count;
     } catch (error) {
-      console.error('countUsers error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -89,18 +86,18 @@ export class UsersDao {
           ...(dto as Prisma.UsersCreateInput),
         },
       });
-      return user as Users;
+      return user;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException('一意制約違反が発生しました。');
+          throw new ConflictException(error, '一意制約違反が発生しました。');
         }
         if (error.code === 'P2003') {
-          throw new BadRequestException('外部キー違反が発生しました。');
+          throw new BadRequestException(error, '外部キー違反が発生しました。');
         }
       }
-      console.error('createUsers error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -122,21 +119,24 @@ export class UsersDao {
         where: { id },
         data: data as Prisma.UsersUpdateInput,
       });
-      return user as Users;
+      return user;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException('一意制約違反が発生しました。');
+          throw new ConflictException(error, '一意制約違反が発生しました。');
         }
         if (error.code === 'P2003') {
-          throw new BadRequestException('外部キー違反が発生しました。');
+          throw new BadRequestException(error, '外部キー違反が発生しました。');
         }
         if (error.code === 'P2025') {
-          throw new NotFoundException('更新対象のレコードが見つかりません。');
+          throw new NotFoundException(
+            error,
+            '更新対象のレコードが見つかりません。',
+          );
         }
       }
-      console.error('updateUsers error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -160,17 +160,18 @@ export class UsersDao {
           // 監査フィールドの更新はサービスクラスが保証する
         },
       });
-      return user as Users;
+      return user;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(
+            error,
             '論理削除対象のレコードが見つかりません。',
           );
         }
       }
-      console.error('softDeleteUsers error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
@@ -190,22 +191,24 @@ export class UsersDao {
       const user = await prismaTx.users.delete({
         where: { id },
       });
-      return user as Users;
+      return user;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(
+            error,
             '物理削除対象のレコードが見つかりません。',
           );
         }
         if (error.code === 'P2003') {
           throw new BadRequestException(
+            error,
             '外部キー制約により、物理削除できませんでした。',
           );
         }
       }
-      console.error('hardDeleteUsers error:', error);
       throw new InternalServerErrorException(
+        error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
       );
     }
