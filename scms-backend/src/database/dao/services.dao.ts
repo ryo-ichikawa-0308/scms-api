@@ -139,7 +139,6 @@ export class ServicesDao {
           );
         }
       }
-      console.error('updateServices error:', error);
       throw new InternalServerErrorException(
         error,
         'DB接続エラーなど、予期せぬ例外が発生しました。',
