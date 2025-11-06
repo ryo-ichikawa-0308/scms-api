@@ -8,6 +8,7 @@ import {
   IsDateString,
   Min,
   IsEmail,
+  IsBoolean,
 } from 'class-validator';
 
 // --------------------------------------------------------------------------------
@@ -108,6 +109,6 @@ export class CreateUsersDto {
 
   /** 削除フラグ */
   @IsDefined({ message: '削除フラグは必ず入力してください。' })
-  @IsInt({ message: '削除フラグは数値で入力してください。' })
-  isDeleted: number;
+  @IsBoolean({ message: '削除フラグは真偽値で入力してください。' })
+  isDeleted: boolean;
 }

@@ -1,4 +1,14 @@
-import { IsDefined, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength, IsDateString, Min } from 'class-validator';
+import {
+  IsDefined,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsDateString,
+  Min,
+  IsBoolean,
+} from 'class-validator';
 
 // --------------------------------------------------------------------------------
 // Select DTO
@@ -94,6 +104,6 @@ export class CreateUserServicesDto {
 
   /** 削除フラグ */
   @IsDefined({ message: '削除フラグは必ず入力してください。' })
-  @IsInt({ message: '削除フラグは数値で入力してください。' })
-  isDeleted: number;
+  @IsBoolean({ message: '削除フラグは真偽値で入力してください。' })
+  isDeleted: boolean;
 }

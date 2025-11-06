@@ -5,7 +5,7 @@ describe('UsersDtoのテスト', () => {
   describe('SelectUsersDtoのテスト', () => {
     const validSelectDto: SelectUsersDto = {
       id: '1',
-      name: 'testuser',
+      name: 'test-user',
       offset: 0,
       limit: 10,
     };
@@ -33,12 +33,12 @@ describe('UsersDtoのテスト', () => {
   });
   describe('CreateUsersDtoのテスト', () => {
     const validCreateDto: CreateUsersDto = {
-      name: 'testuser',
+      name: 'test-user',
       email: 'test@example.com',
-      password: 'hashedpassword',
+      password: 'hashed-password',
       registeredAt: new Date().toISOString(),
       registeredBy: 'system',
-      isDeleted: 0,
+      isDeleted: false,
     };
     describe('正常系', () => {
       test('必須項目すべてに入力がある場合', async () => {
@@ -81,7 +81,7 @@ describe('UsersDtoのテスト', () => {
         expect(errors.length).toBeGreaterThan(0);
         expect(
           errors.some(
-            (e) => e.property === 'isDeleted' && e.constraints?.isInt,
+            (e) => e.property === 'isDeleted' && e.constraints?.isBoolean,
           ),
         ).toBeTruthy();
       });
