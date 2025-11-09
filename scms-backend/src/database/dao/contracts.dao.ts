@@ -1,25 +1,22 @@
 import {
   Injectable,
   InternalServerErrorException,
-  ConflictException,
   NotFoundException,
+  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PrismaTransaction } from 'src/prisma/prisma.service';
+import { PrismaTransaction } from 'src/prisma/prisma.type';
+import { Contracts, Prisma } from '@prisma/client';
 import {
   SelectContractsDto,
   CreateContractsDto,
 } from 'src/database/dto/contracts.dto';
-import { Contracts, Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class ContractsDao {
-  private readonly client: PrismaService;
-
-  constructor(client: PrismaService) {
-    this.client = client;
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * 契約を取得する
@@ -30,23 +27,34 @@ export class ContractsDao {
     try {
       const where: Prisma.ContractsWhereInput = {
         isDeleted: false,
-        ...(dto.id && { id: dto.id }),
-        ...(dto.usersId && { usersId: dto.usersId }),
-        ...(dto.userServicesId && { userServicesId: dto.userServicesId }),
-        ...(dto.quantity && { quantity: dto.quantity }),
       };
 
-      const contracts = await this.client.contracts.findMany({
+      if (dto.id) where.id = { contains: dto.id };
+      if (dto.usersId) where.usersId = { contains: dto.usersId };
+      if (dto.userServicesId)
+        where.userServicesId = { contains: dto.userServicesId };
+      if (dto.quantity !== undefined) where.quantity = dto.quantity;
+      // 監査項目は検索対象外
+
+      const orderBy: Prisma.ContractsOrderByWithRelationInput = {};
+      if (dto.sortBy) {
+        const sortOrder = dto.sortOrder || 'asc';
+        orderBy[dto.sortBy] = sortOrder;
+      }
+
+      const contracts = await this.prisma.contracts.findMany({
         where,
         skip: dto.offset,
         take: dto.limit,
+        orderBy: orderBy,
       });
-
       return contracts;
-    } catch (error) {
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        // Prisma固有の例外処理はここでは省略
+      }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        '契約の取得中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -60,16 +68,25 @@ export class ContractsDao {
     try {
       const where: Prisma.ContractsWhereInput = {
         isDeleted: false,
-        ...(dto.usersId && { usersId: dto.usersId }),
-        ...(dto.userServicesId && { userServicesId: dto.userServicesId }),
       };
 
-      const count = await this.client.contracts.count({ where });
+      if (dto.id) where.id = { contains: dto.id };
+      if (dto.usersId) where.usersId = { contains: dto.usersId };
+      if (dto.userServicesId)
+        where.userServicesId = { contains: dto.userServicesId };
+      if (dto.quantity !== undefined) where.quantity = dto.quantity;
+      // 監査項目は検索対象外
+
+      const count = await this.prisma.contracts.count({
+        where,
+      });
       return count;
-    } catch (error) {
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        // Prisma固有の例外処理はここでは省略
+      }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        '契約の件数取得中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -85,29 +102,34 @@ export class ContractsDao {
     dto: CreateContractsDto,
   ): Promise<Contracts> {
     try {
-      const contract = await prismaTx.contracts.create({
-        data: {
-          usersId: dto.usersId,
-          userServicesId: dto.userServicesId,
-          quantity: dto.quantity,
-          registeredAt: dto.registeredAt,
-          registeredBy: dto.registeredBy,
-          isDeleted: false,
-        },
-      });
-      return contract;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException(error, '一意制約違反が発生しました。');
+      const data: Prisma.ContractsCreateInput = {
+        id: dto.id,
+        quantity: dto.quantity,
+        registeredAt: dto.registeredAt,
+        registeredBy: dto.registeredBy,
+        updatedAt: dto.updatedAt,
+        updatedBy: dto.updatedBy,
+        isDeleted: dto.isDeleted,
+        users: { connect: { id: dto.usersId } },
+        userServices: { connect: { id: dto.userServicesId } },
+      };
+
+      return await prismaTx.contracts.create({ data });
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === 'P2002') {
+          // 一意制約違反
+          throw new ConflictException('一意制約に違反する契約の登録です。');
         }
-        if (error.code === 'P2003') {
-          throw new BadRequestException(error, '外部キー違反が発生しました。');
+        if (e.code === 'P2003') {
+          // 外部キー違反
+          throw new BadRequestException(
+            '外部キー制約に違反する契約の登録です。',
+          );
         }
       }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        '契約の新規登録中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -123,30 +145,35 @@ export class ContractsDao {
     updateData: Contracts,
   ): Promise<Contracts> {
     try {
-      const { id, ...data } = updateData;
-      const contract = await prismaTx.contracts.update({
+      const { id, usersId, userServicesId, ...data } = updateData;
+
+      return await prismaTx.contracts.update({
         where: { id },
-        data: data as Prisma.ContractsUpdateInput,
+        data: {
+          ...data,
+          users: { connect: { id: usersId } },
+          userServices: { connect: { id: userServicesId } },
+        },
       });
-      return contract;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException(error, '一意制約違反が発生しました。');
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === 'P2002') {
+          // 一意制約違反
+          throw new ConflictException('一意制約に違反する契約の更新です。');
         }
-        if (error.code === 'P2003') {
-          throw new BadRequestException(error, '外部キー違反が発生しました。');
-        }
-        if (error.code === 'P2025') {
-          throw new NotFoundException(
-            error,
-            '更新対象のレコードが見つかりません。',
+        if (e.code === 'P2003') {
+          // 外部キー違反
+          throw new BadRequestException(
+            '外部キー制約に違反する契約の更新です。',
           );
+        }
+        if (e.code === 'P2025') {
+          // レコードが見つからない
+          throw new NotFoundException('更新対象の契約が見つかりません。');
         }
       }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        '契約の更新中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -155,32 +182,34 @@ export class ContractsDao {
    * 契約を論理削除する
    * @param prismaTx トランザクション
    * @param id 契約のID(主キー)
+   * @param updatedAt トランザクション開始日時
+   * @param updatedBy トランザクションを行うユーザーのID
    * @returns 論理削除したレコード
    */
   async softDeleteContracts(
     prismaTx: PrismaTransaction,
     id: string,
+    updatedAt: Date,
+    updatedBy: string,
   ): Promise<Contracts> {
     try {
-      const contract = await prismaTx.contracts.update({
+      return await prismaTx.contracts.update({
         where: { id },
         data: {
           isDeleted: true,
+          updatedAt: updatedAt,
+          updatedBy: updatedBy,
         },
       });
-      return contract;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException(
-            error,
-            '論理削除対象のレコードが見つかりません。',
-          );
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === 'P2025') {
+          // レコードが見つからない
+          throw new NotFoundException('論理削除対象の契約が見つかりません。');
         }
       }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        '契約の論理削除中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -196,28 +225,25 @@ export class ContractsDao {
     id: string,
   ): Promise<Contracts> {
     try {
-      const contract = await prismaTx.contracts.delete({
+      return await prismaTx.contracts.delete({
         where: { id },
       });
-      return contract;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException(
-            error,
-            '物理削除対象のレコードが見つかりません。',
-          );
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === 'P2025') {
+          // レコードが見つからない
+          throw new NotFoundException('物理削除対象の契約が見つかりません。');
         }
-        if (error.code === 'P2003') {
+        // Contractsは子テーブルを持たないため、通常はP2003は発生しないが、念のため
+        if (e.code === 'P2003') {
+          // 外部キー違反
           throw new BadRequestException(
-            error,
-            '外部キー制約により、物理削除できませんでした。',
+            '外部キー制約に違反するため、契約の物理削除ができません。',
           );
         }
       }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        '契約の物理削除中に予期せぬエラーが発生しました。',
       );
     }
   }

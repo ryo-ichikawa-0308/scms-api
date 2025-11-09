@@ -1,25 +1,22 @@
 import {
   Injectable,
   InternalServerErrorException,
-  ConflictException,
   NotFoundException,
+  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PrismaTransaction } from 'src/prisma/prisma.service';
+import { PrismaTransaction } from 'src/prisma/prisma.type';
+import { UserServices, Prisma } from '@prisma/client';
 import {
   SelectUserServicesDto,
   CreateUserServicesDto,
 } from 'src/database/dto/user_services.dto';
-import { Prisma, UserServices } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class UserServicesDao {
-  private readonly client: PrismaService;
-
-  constructor(client: PrismaService) {
-    this.client = client;
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * ユーザー提供サービスを取得する
@@ -32,23 +29,33 @@ export class UserServicesDao {
     try {
       const where: Prisma.UserServicesWhereInput = {
         isDeleted: false,
-        ...(dto.id && { id: dto.id }),
-        ...(dto.usersId && { usersId: dto.usersId }),
-        ...(dto.servicesId && { servicesId: dto.servicesId }),
-        ...(dto.stock && { stock: dto.stock }),
       };
 
-      const userServices = await this.client.userServices.findMany({
+      if (dto.id) where.id = { contains: dto.id };
+      if (dto.usersId) where.usersId = { contains: dto.usersId };
+      if (dto.servicesId) where.servicesId = { contains: dto.servicesId };
+      if (dto.stock !== undefined) where.stock = dto.stock;
+      // 監査項目は検索対象外
+
+      const orderBy: Prisma.UserServicesOrderByWithRelationInput = {};
+      if (dto.sortBy) {
+        const sortOrder = dto.sortOrder || 'asc';
+        orderBy[dto.sortBy] = sortOrder;
+      }
+
+      const userServices = await this.prisma.userServices.findMany({
         where,
         skip: dto.offset,
         take: dto.limit,
+        orderBy: orderBy,
       });
-
       return userServices;
-    } catch (error) {
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        // Prisma固有の例外処理はここでは省略
+      }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        'ユーザー提供サービスの取得中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -62,16 +69,24 @@ export class UserServicesDao {
     try {
       const where: Prisma.UserServicesWhereInput = {
         isDeleted: false,
-        ...(dto.usersId && { usersId: dto.usersId }),
-        ...(dto.servicesId && { servicesId: dto.servicesId }),
       };
 
-      const count = await this.client.userServices.count({ where });
+      if (dto.id) where.id = { contains: dto.id };
+      if (dto.usersId) where.usersId = { contains: dto.usersId };
+      if (dto.servicesId) where.servicesId = { contains: dto.servicesId };
+      if (dto.stock !== undefined) where.stock = dto.stock;
+      // 監査項目は検索対象外
+
+      const count = await this.prisma.userServices.count({
+        where,
+      });
       return count;
-    } catch (error) {
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        // Prisma固有の例外処理はここでは省略
+      }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        'ユーザー提供サービスの件数取得中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -87,29 +102,36 @@ export class UserServicesDao {
     dto: CreateUserServicesDto,
   ): Promise<UserServices> {
     try {
-      const userService = await prismaTx.userServices.create({
-        data: {
-          usersId: dto.usersId,
-          servicesId: dto.servicesId,
-          stock: dto.stock,
-          registeredAt: dto.registeredAt,
-          registeredBy: dto.registeredBy,
-          isDeleted: false,
-        },
-      });
-      return userService;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException(error, '一意制約違反が発生しました。');
+      const data: Prisma.UserServicesCreateInput = {
+        id: dto.id,
+        stock: dto.stock,
+        registeredAt: dto.registeredAt,
+        registeredBy: dto.registeredBy,
+        updatedAt: dto.updatedAt,
+        updatedBy: dto.updatedBy,
+        isDeleted: dto.isDeleted,
+        users: { connect: { id: dto.usersId } },
+        services: { connect: { id: dto.servicesId } },
+      };
+
+      return await prismaTx.userServices.create({ data });
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === 'P2002') {
+          // 一意制約違反
+          throw new ConflictException(
+            '一意制約に違反するユーザー提供サービスの登録です。',
+          );
         }
-        if (error.code === 'P2003') {
-          throw new BadRequestException(error, '外部キー違反が発生しました。');
+        if (e.code === 'P2003') {
+          // 外部キー違反
+          throw new BadRequestException(
+            '外部キー制約に違反するユーザー提供サービスの登録です。',
+          );
         }
       }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        'ユーザー提供サービスの新規登録中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -125,30 +147,39 @@ export class UserServicesDao {
     updateData: UserServices,
   ): Promise<UserServices> {
     try {
-      const { id, ...data } = updateData;
-      const userService = await prismaTx.userServices.update({
+      const { id, usersId, servicesId, ...data } = updateData;
+
+      return await prismaTx.userServices.update({
         where: { id },
-        data: data as Prisma.UserServicesUpdateInput,
+        data: {
+          ...data,
+          users: { connect: { id: usersId } },
+          services: { connect: { id: servicesId } },
+        },
       });
-      return userService;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException(error, '一意制約違反が発生しました。');
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === 'P2002') {
+          // 一意制約違反
+          throw new ConflictException(
+            '一意制約に違反するユーザー提供サービスの更新です。',
+          );
         }
-        if (error.code === 'P2003') {
-          throw new BadRequestException(error, '外部キー違反が発生しました。');
+        if (e.code === 'P2003') {
+          // 外部キー違反
+          throw new BadRequestException(
+            '外部キー制約に違反するユーザー提供サービスの更新です。',
+          );
         }
-        if (error.code === 'P2025') {
+        if (e.code === 'P2025') {
+          // レコードが見つからない
           throw new NotFoundException(
-            error,
-            '更新対象のレコードが見つかりません。',
+            '更新対象のユーザー提供サービスが見つかりません。',
           );
         }
       }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        'ユーザー提供サービスの更新中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -157,32 +188,36 @@ export class UserServicesDao {
    * ユーザー提供サービスを論理削除する
    * @param prismaTx トランザクション
    * @param id ユーザー提供サービスのID(主キー)
+   * @param updatedAt トランザクション開始日時
+   * @param updatedBy トランザクションを行うユーザーのID
    * @returns 論理削除したレコード
    */
   async softDeleteUserServices(
     prismaTx: PrismaTransaction,
     id: string,
+    updatedAt: Date,
+    updatedBy: string,
   ): Promise<UserServices> {
     try {
-      const userService = await prismaTx.userServices.update({
+      return await prismaTx.userServices.update({
         where: { id },
         data: {
           isDeleted: true,
+          updatedAt: updatedAt,
+          updatedBy: updatedBy,
         },
       });
-      return userService;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === 'P2025') {
+          // レコードが見つからない
           throw new NotFoundException(
-            error,
-            '論理削除対象のレコードが見つかりません。',
+            '論理削除対象のユーザー提供サービスが見つかりません。',
           );
         }
       }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        'ユーザー提供サービスの論理削除中に予期せぬエラーが発生しました。',
       );
     }
   }
@@ -198,28 +233,26 @@ export class UserServicesDao {
     id: string,
   ): Promise<UserServices> {
     try {
-      const userService = await prismaTx.userServices.delete({
+      return await prismaTx.userServices.delete({
         where: { id },
       });
-      return userService;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
+    } catch (e) {
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === 'P2025') {
+          // レコードが見つからない
           throw new NotFoundException(
-            error,
-            '物理削除対象のレコードが見つかりません。',
+            '物理削除対象のユーザー提供サービスが見つかりません。',
           );
         }
-        if (error.code === 'P2003') {
+        if (e.code === 'P2003') {
+          // 外部キー違反
           throw new BadRequestException(
-            error,
-            '外部キー制約により、物理削除できませんでした。',
+            '外部キー制約に違反するため、ユーザー提供サービスの物理削除ができません。',
           );
         }
       }
       throw new InternalServerErrorException(
-        error,
-        'DB接続エラーなど、予期せぬ例外が発生しました。',
+        'ユーザー提供サービスの物理削除中に予期せぬエラーが発生しました。',
       );
     }
   }

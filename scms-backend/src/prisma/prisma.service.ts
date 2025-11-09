@@ -82,15 +82,3 @@ export class PrismaService extends PrismaClient {
     });
   }
 }
-
-// トランザクションの型
-export type PrismaTransaction = Omit<
-  PrismaClient,
-  | '$connect'
-  | '$disconnect'
-  | '$on'
-  | '$off'
-  | '$use'
-  | '$extends'
-  | '$withExtensions'
->;
