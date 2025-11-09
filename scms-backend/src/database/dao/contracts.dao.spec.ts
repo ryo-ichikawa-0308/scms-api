@@ -8,13 +8,14 @@ import {
   SelectContractsDto,
   CreateContractsDto,
 } from 'src/database/dto/contracts.dto';
-import { Contracts, Prisma } from '@prisma/client';
+import { Contracts } from '@prisma/client';
 import {
   InternalServerErrorException,
   NotFoundException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { PrismaTransaction } from 'src/prisma/prisma.type';
 
 // Prisma関連のモック
 const mockPrismaService = {
@@ -35,7 +36,7 @@ const mockPrismaService = {
 const mockContractsModel = mockPrismaService.contracts;
 const mockPrismaTx = {
   contracts: mockContractsModel,
-} as unknown as Prisma.TransactionClient;
+} as unknown as PrismaTransaction;
 
 const { PrismaClientKnownRequestError } = jest.requireActual(
   '@prisma/client/runtime/library',

@@ -5,13 +5,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersDao } from 'src/database/dao/users.dao';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SelectUsersDto, CreateUsersDto } from 'src/database/dto/users.dto';
-import { Users, Prisma } from '@prisma/client';
+import { Users } from '@prisma/client';
 import {
   InternalServerErrorException,
   NotFoundException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { PrismaTransaction } from 'src/prisma/prisma.type';
 
 // Prisma関連のモック
 const mockPrismaService = {
@@ -32,7 +33,7 @@ const mockPrismaService = {
 const mockUsersModel = mockPrismaService.users;
 const mockPrismaTx = {
   users: mockUsersModel,
-} as unknown as Prisma.TransactionClient;
+} as unknown as PrismaTransaction;
 
 const { PrismaClientKnownRequestError } = jest.requireActual(
   '@prisma/client/runtime/library',
