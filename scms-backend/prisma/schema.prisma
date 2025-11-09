@@ -12,113 +12,123 @@ datasource db {
 /// ユーザー
 model Users {
   /// ID
-  id String @id @map("id") @db.VarChar(36) @default(uuid())
+  id String @id @default(uuid()) @db.Char(36)
   /// ユーザー名
-  name String @map("name") @db.VarChar(255)
+  name String @map("name") @db.VarChar(256)
   /// メールアドレス
-  email String @unique @map("email") @db.VarChar(255)
+  email String @map("email") @db.VarChar(256)
   /// パスワード
-  password String @map("password") @db.VarChar(255)
+  password String @map("password") @db.VarChar(256)
+  /// 認証トークン
+  token String? @map("token") @db.VarChar(2048)
   /// 登録日時
-  registeredAt DateTime @map("registered_at") @db.Timestamp(0) @default(now())
+  registeredAt DateTime @map("registered_at") @default(now()) @db.Timestamp(3)
   /// 登録者
-  registeredBy String @map("registered_by") @db.VarChar(36)
+  registeredBy String @map("registered_by") @db.Char(36)
   /// 更新日時
-  updatedAt DateTime? @map("updated_at") @db.Timestamp(0) @updatedAt
+  updatedAt DateTime? @map("updated_at") @updatedAt @db.Timestamp(3)
   /// 更新者
-  updatedBy String? @map("updated_by") @db.VarChar(36)
+  updatedBy String? @map("updated_by") @db.Char(36)
   /// 削除フラグ
-  isDeleted Boolean @map("is_deleted") @db.TinyInt @default(false)
-  revContracts Contracts[] @relation("fk_contracts_users")
+  isDeleted Boolean @map("is_deleted") @default(false) @db.TinyInt
+  
+  // Relations
   revUserServices UserServices[] @relation("fk_user_services_users")
+  revContractsUsers Contracts[] @relation("fk_contracts_users")
 
   @@map("users")
-  @@index([name], name: "idx_users_name")
-  @@unique([email, isDeleted], name: "idx_users_available_email")
+  @@index([name], map: "idx_users_name")
+  @@unique([email(sort: Asc), isDeleted(sort: Asc)], map: "idx_users_available_email")
 }
 
 /// サービス
 model Services {
   /// ID
-  id String @id @map("id") @db.VarChar(36) @default(uuid())
+  id String @id @default(uuid()) @db.Char(36)
   /// サービス名
-  name String @map("name") @db.VarChar(255)
+  name String @map("name") @db.VarChar(256)
   /// 概要
-  description String @map("description") @db.VarChar(255)
+  description String @map("description") @db.VarChar(256)
   /// 単価
-  price Int @map("price") @db.Int @default(0)
+  price Int @map("price") @db.Int
   /// 単位
   unit String @map("unit") @db.VarChar(16)
   /// 登録日時
-  registeredAt DateTime @map("registered_at") @db.Timestamp(0) @default(now())
+  registeredAt DateTime @map("registered_at") @default(now()) @db.Timestamp(3)
   /// 登録者
-  registeredBy String @map("registered_by") @db.VarChar(36)
+  registeredBy String @map("registered_by") @db.Char(36)
   /// 更新日時
-  updatedAt DateTime? @map("updated_at") @db.Timestamp(0) @updatedAt
+  updatedAt DateTime? @map("updated_at") @updatedAt @db.Timestamp(3)
   /// 更新者
-  updatedBy String? @map("updated_by") @db.VarChar(36)
+  updatedBy String? @map("updated_by") @db.Char(36)
   /// 削除フラグ
-  isDeleted Boolean @map("is_deleted") @db.TinyInt @default(false)
-  revUserServices UserServices[] @relation("fk_user_services_services")
+  isDeleted Boolean @map("is_deleted") @default(false) @db.TinyInt
+
+  // Relations
+  revUserServicesServices UserServices[] @relation("fk_user_services_services")
 
   @@map("services")
-  @@unique([name, isDeleted], name: "idx_services_name_available")
-}
-
-/// 契約
-model Contracts {
-  /// ID
-  id String @id @map("id") @db.VarChar(36) @default(uuid())
-  /// ユーザーID
-  usersId String @map("users_id") @db.VarChar(36)
-  /// ユーザー提供サービスID
-  userServicesId String @map("user_services_id") @db.VarChar(36)
-  /// 契約数
-  quantity Int @map("quantity") @db.Int @default(0)
-  /// 登録日時
-  registeredAt DateTime @map("registered_at") @db.Timestamp(0) @default(now())
-  /// 登録者
-  registeredBy String @map("registered_by") @db.VarChar(36)
-  /// 更新日時
-  updatedAt DateTime? @map("updated_at") @db.Timestamp(0) @updatedAt
-  /// 更新者
-  updatedBy String? @map("updated_by") @db.VarChar(36)
-  /// 削除フラグ
-  isDeleted Boolean @map("is_deleted") @db.TinyInt @default(false)
-  users Users @relation("fk_contracts_users", fields: [usersId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  userServices UserServices @relation("fk_contracts_user_services", fields: [userServicesId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@map("contracts")
-  @@index([usersId], name: "idx_users_id")
-  @@index([userServicesId], name: "idx_user_services_id")
+  @@unique([name(sort: Asc), isDeleted(sort: Asc)], map: "idx_services_name_available")
 }
 
 /// ユーザー提供サービス
 model UserServices {
   /// ID
-  id String @id @map("id") @db.VarChar(36) @default(uuid())
+  id String @id @default(uuid()) @db.Char(36)
   /// ユーザーID
-  usersId String @map("users_id") @db.VarChar(36)
+  usersId String @map("users_id") @db.Char(36)
   /// サービスID
-  servicesId String @map("services_id") @db.VarChar(36)
+  servicesId String @map("services_id") @db.Char(36)
   /// 在庫数
-  stock Int @map("stock") @db.Int @default(0)
+  stock Int @map("stock") @db.Int
   /// 登録日時
-  registeredAt DateTime @map("registered_at") @db.Timestamp(0) @default(now())
+  registeredAt DateTime @map("registered_at") @default(now()) @db.Timestamp(3)
   /// 登録者
-  registeredBy String @map("registered_by") @db.VarChar(36)
+  registeredBy String @map("registered_by") @db.Char(36)
   /// 更新日時
-  updatedAt DateTime? @map("updated_at") @db.Timestamp(0) @updatedAt
+  updatedAt DateTime? @map("updated_at") @updatedAt @db.Timestamp(3)
   /// 更新者
-  updatedBy String? @map("updated_by") @db.VarChar(36)
+  updatedBy String? @map("updated_by") @db.Char(36)
   /// 削除フラグ
-  isDeleted Boolean @map("is_deleted") @db.TinyInt @default(false)
+  isDeleted Boolean @map("is_deleted") @default(false) @db.TinyInt
+
+  // Relations
   users Users @relation("fk_user_services_users", fields: [usersId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   services Services @relation("fk_user_services_services", fields: [servicesId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  revContracts Contracts[] @relation("fk_contracts_user_services")
-
+  revContractsUserServices Contracts[] @relation("fk_contracts_user_services")
+  
   @@map("user_services")
-  @@index([usersId], name: "idx_user_services_users_id")
-  @@index([servicesId], name: "idx_user_services_services_id")
-  @@unique([usersId, servicesId], name: "idx_user_services_unique")
+  @@index([usersId(sort: Asc)], map: "idx_user_services_users_id")
+  @@index([servicesId(sort: Asc)], map: "idx_user_services_services_id")
+  @@unique([usersId(sort: Asc), servicesId(sort: Asc)], map: "idx_user_services_unique")
+}
+
+/// 契約
+model Contracts {
+  /// ID
+  id String @id @default(uuid()) @db.Char(36)
+  /// ユーザーID
+  usersId String @map("users_id") @db.Char(36)
+  /// ユーザー提供サービスID
+  userServicesId String @map("user_services_id") @db.Char(36)
+  /// 契約数
+  quantity Int @map("quantity") @db.Int
+  /// 登録日時
+  registeredAt DateTime @map("registered_at") @default(now()) @db.Timestamp(3)
+  /// 登録者
+  registeredBy String @map("registered_by") @db.Char(36)
+  /// 更新日時
+  updatedAt DateTime? @map("updated_at") @updatedAt @db.Timestamp(3)
+  /// 更新者
+  updatedBy String? @map("updated_by") @db.Char(36)
+  /// 削除フラグ
+  isDeleted Boolean @map("is_deleted") @default(false) @db.TinyInt
+
+  // Relations
+  users Users @relation("fk_contracts_users", fields: [usersId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userServices UserServices @relation("fk_contracts_user_services", fields: [userServicesId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("contracts")
+  @@index([usersId(sort: Asc)], map: "idx_users_id")
+  @@index([userServicesId(sort: Asc)], map: "idx_user_services_id")
 }
