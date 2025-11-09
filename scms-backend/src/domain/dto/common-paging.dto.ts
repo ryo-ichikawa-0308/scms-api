@@ -6,7 +6,7 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
-import { Exclude, Transform, TransformFnParams } from 'class-transformer';
+import { Exclude } from 'class-transformer';
 /**
  * リスト系取得APIのリクエスト基底クラス
  * ページネーションに必要なフィールドを定義する。
@@ -33,22 +33,7 @@ export class ListRequestBase {
   sortBy?: string;
 
   /** ソート順 */
-  @Transform((params: TransformFnParams) => {
-    // デフォルト値を'asc'にする。
-    const request = params.obj as ListRequestBase;
-    const incomingValue: unknown = params.value;
-    if (incomingValue !== undefined) {
-      return incomingValue;
-    }
-    if (request.sortBy !== undefined) {
-      return 'asc';
-    }
-    return undefined;
-  })
-  @ValidateIf((o: ListRequestBase) => o.sortBy !== undefined)
-  @IsNotEmpty({
-    message: 'ソート順が未指定です。ソートキーを指定する場合は必須です。',
-  })
+  @ValidateIf((o: ListRequestBase) => o.sortOrder !== undefined)
   @IsIn(['asc', 'desc'], {
     message: 'ソート順は"asc"または"desc"で入力してください。',
   })

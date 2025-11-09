@@ -1,7 +1,6 @@
 import { validate, ValidationError } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { ListRequestBase, ListResponse } from './common-paging.dto';
-
 describe('ListRequestBase Validation Test', () => {
   const validateRequest = async (obj: object): Promise<ValidationError[]> => {
     const instance = plainToInstance(ListRequestBase, obj);
@@ -24,12 +23,12 @@ describe('ListRequestBase Validation Test', () => {
     expect(errors.length).toBe(0);
   });
 
-  test('正常系: sortByのみがあり、sortOrderが自動的に"asc"に変換される場合', async () => {
+  test('正常系: sortByのみがあり、sortOrderが未定義であることが許容される', async () => {
     const data = {
       sortBy: 'date',
     };
     const instance = plainToInstance(ListRequestBase, data);
-    expect(instance.sortOrder).toBe('asc');
+    expect(instance.sortOrder).toBeUndefined();
     const errors = await validate(instance);
     expect(errors.length).toBe(0);
   });
@@ -46,6 +45,33 @@ describe('ListRequestBase Validation Test', () => {
     });
     expect(errors.length).toBe(1);
     expect(errors[0].property).toBe('offset');
+    expect(errors[0].constraints).toHaveProperty('isInt');
+  });
+  test('異常系: offsetはあるがlimitが型間違いの場合', async () => {
+    const errors = await validateRequest({
+      offset: 10,
+      limit: 'invalid_number',
+    });
+    expect(errors.length).toBe(1);
+    expect(errors[0].property).toBe('limit');
+    expect(errors[0].constraints).toHaveProperty('isInt');
+  });
+
+  test('異常系: limitはあるがoffsetが未定義の場合', async () => {
+    const errors = await validateRequest({
+      limit: 10,
+    });
+    expect(errors.length).toBe(1);
+    expect(errors[0].property).toBe('offset');
+    expect(errors[0].constraints).toHaveProperty('isInt');
+  });
+
+  test('異常系: offsetはあるがlimitが未定義の場合', async () => {
+    const errors = await validateRequest({
+      offset: 1,
+    });
+    expect(errors.length).toBe(1);
+    expect(errors[0].property).toBe('limit');
     expect(errors[0].constraints).toHaveProperty('isInt');
   });
 
