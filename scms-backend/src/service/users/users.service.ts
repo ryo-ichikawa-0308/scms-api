@@ -1,19 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaTransaction } from 'src/prisma/prisma.type';
-// import { UsersDao } from 'src/database/users.dao'; // Assumed DAO
+import { UsersDao } from 'src/database/dao/users.dao';
 
 import { UsersCreateRequestDto } from '../../domain/users/dto/users-create-request.dto';
 import { UsersCreateResponseDto } from '../../domain/users/dto/users-create-response.dto';
-// import { CreateUsersDto } from 'src/database/users.dto'; // Assumed DB DTO
+import { CreateUsersDto } from 'src/database/dto/users.dto';
+import { AuthService } from '../auth/auth.service';
 
 /**
  * ユーザーに関するビジネスロジックを実装したServiceクラス
  */
 @Injectable()
 export class UsersService {
-  // constructor(
-  //   private readonly usersDao: UsersDao, // ユーザーDAOに依存
-  // ) {}
+  constructor(
+    private readonly usersDao: UsersDao,
+    private readonly authService: AuthService,
+  ) {}
 
   // ユーザー登録 (POST/create) - トランザクション対応メソッド
   /**
@@ -30,15 +32,38 @@ export class UsersService {
     txDateTime: Date,
     body: UsersCreateRequestDto,
   ): Promise<UsersCreateResponseDto> {
-    // 1. TODO: RequestDtoからDB登録データ (DAO) へ詰め替え (RequestDto -> CreateUsersDto)
-    // Note: パスワードはここでハッシュ化を行う
-    // const createDto: CreateUsersDto = { ... };
+    // 1. RequestDtoからDB登録データ (DAO) へ詰め替え (RequestDto -> CreateUsersDto)
+    const createDto: CreateUsersDto = {
+      name: body.name,
+      email: body.name,
+      password: '', // 「ビジネスロジック実行」で設定
+      registeredBy: userId,
+      registeredAt: txDateTime,
+    };
 
-    // 2. TODO: ビジネスロジックの実行 (バリデーション、採番、属性付与など)
-    // 3. TODO: DAOのtx対応メソッドを呼び出し、DB登録を実行 (prismaTxを渡す)
-    // const createdUser = await this.usersDao.createUsers(prismaTx, createDto);
+    // 2. ビジネスロジックの実行 (バリデーション、採番、属性付与など)
+    const hashedPassword = await this.authService.getPasswordHash(
+      body.password,
+    );
+    createDto.password = hashedPassword;
 
-    // 4. TODO: 登録成功。空のDTOを返却
-    return {};
+    // 3. DAOのtx対応メソッドを呼び出し、DB登録を実行 (prismaTxを渡す)
+    const createdUser = await this.usersDao.createUsers(prismaTx, createDto);
+    if (!createdUser) {
+      throw new InternalServerErrorException('ユーザー登録に失敗しました');
+    }
+
+    // 4. 登録成功。
+    return { id: createdUser.id };
+  }
+
+  /**
+   * メールアドレスが登録済みか検査する
+   * @param email 検査対象のメールアドレス
+   * @returns 1件以上存在したらtrue
+   */
+  async isEmailExists(email: string): Promise<boolean> {
+    const existedUsers = await this.usersDao.countUsers({ email: email });
+    return existedUsers > 0;
   }
 }

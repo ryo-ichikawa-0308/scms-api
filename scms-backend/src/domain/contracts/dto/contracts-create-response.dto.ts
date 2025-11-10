@@ -1,11 +1,20 @@
-import { IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 /**
  * サービス契約 レスポンスDTO
  */
 export class ContractsCreateResponseDto {
-  /** ID */
-  @IsOptional()
+  /** 契約ID */
+  @IsNotEmpty()
   @IsString()
-  id?: string;
+  @MinLength(36)
+  @MaxLength(36)
+  @IsUUID()
+  id: string;
 }

@@ -1,10 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { PrismaTransaction } from 'src/prisma/prisma.type'; // Assumed type
-
+import type { PrismaTransaction } from 'src/prisma/prisma.type';
 import { AuthLoginRequestDto } from './dto/auth-login-request.dto';
 import { AuthLoginResponseDto } from './dto/auth-login-response.dto';
-import { AuthLogoutRequestDto } from './dto/auth-logout-request.dto';
-import { AuthLogoutResponseDto } from './dto/auth-logout-response.dto';
 import { AuthService } from '../../service/auth/auth.service';
 
 /**
@@ -53,20 +50,15 @@ export class AuthOrchestrator {
    * @param userId 認証情報から取得したユーザーID
    * @returns AuthLogoutResponseDto
    */
-  async logout(
-    body: AuthLogoutRequestDto,
-    userId: string, // authRequired === true
-  ): Promise<AuthLogoutResponseDto> {
+  async logout(userId: string): Promise<void> {
     // ログアウトはトークン無効化(DB write: Users.token = null)を含むため、Orchestratorでトランザクション管理を行う
     const txDateTime = new Date();
 
     await this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
-        // 1. TODO: Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTimeを渡す
-        await this.authService.logoutWithTx(prismaTx, userId, txDateTime, body);
+        // 1. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTimeを渡す
+        await this.authService.logoutWithTx(prismaTx, userId, txDateTime);
       },
     );
-
-    return {}; // 204 No Content
   }
 }

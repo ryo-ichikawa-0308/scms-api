@@ -1,20 +1,28 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaTransaction } from 'src/prisma/prisma.type'; // Assumed type
-// Assuming DAO classes are available from the service module's providers/imports
-// import { UsersDao } from 'src/database/users.dao'; // Assumed DAO
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { PrismaTransaction } from 'src/prisma/prisma.type';
+import { UsersDao } from 'src/database/dao/users.dao';
 
 import { AuthLoginRequestDto } from '../../domain/auth/dto/auth-login-request.dto';
 import { AuthLoginResponseDto } from '../../domain/auth/dto/auth-login-response.dto';
-// import { UpdateUsersDto } from 'src/database/users.dto'; // Assumed DB DTO
+
+import * as bcrypt from 'bcrypt';
+import { Users } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
+const SALT_ROUNDS = 10;
 
 /**
  * 認証に関するビジネスロジックを実装したServiceクラス
  */
 @Injectable()
 export class AuthService {
-  // constructor(
-  //   private readonly usersDao: UsersDao, // ユーザーDAOに依存
-  // ) {}
+  constructor(
+    private readonly usersDao: UsersDao,
+    private readonly jwtService: JwtService,
+  ) {}
 
   // ログイン (POST/login) - トランザクション対応メソッド
   /**
@@ -31,14 +39,39 @@ export class AuthService {
     txDateTime: Date,
     body: AuthLoginRequestDto,
   ): Promise<AuthLoginResponseDto> {
-    // 1. TODO: 認証処理の実行 (メールアドレス/パスワード照合)
-    // 2. TODO: 認証成功後、JWTトークンを生成
-    const generatedToken = 'MOCK_JWT_TOKEN'; // TODO: トークン生成
-    const currentUserId = 'ACTUAL_USER_ID_FROM_DB'; // TODO: DBから取得したユーザーID
-    const userName = 'ACTUAL_USER_NAME_FROM_DB'; // TODO: DBから取得したユーザー名
+    // 1. 認証処理の実行 (メールアドレス/パスワード照合)
+    const loginUser = await this.usersDao.selectUsersByEmail(body.email);
+    if (!loginUser) {
+      return new UnauthorizedException('認証情報が無効です');
+    }
+    const isValidPassword = await this.validatePassword(
+      body.password,
+      loginUser.password,
+    );
+    if (isValidPassword == false) {
+      return new UnauthorizedException('認証情報が無効です');
+    }
+    // 2. 認証成功後、JWTトークンを生成
+    const payload = { username: loginUser.name, userId: loginUser.id };
+    const generatedToken = this.jwtService.sign(payload);
+    const currentUserId = loginUser.id;
+    const userName = loginUser.name;
 
-    // 3. TODO: ユーザーテーブルのトークンを更新 (this.usersDao.updateUsers(prismaTx, updateDto))
-    // 4. TODO: DB結果を ResponseDto へ詰め替え
+    // 3. ユーザーテーブルのトークンを更新
+    const user = await this.usersDao.lockUsersById(prismaTx, userId);
+    if (!user) {
+      throw new NotFoundException('ユーザー情報が存在しません');
+    }
+    const updateDto: Users = {
+      ...user,
+      token: generatedToken,
+      updatedAt: txDateTime,
+      updatedBy: userId,
+    };
+
+    await this.usersDao.updateUsers(prismaTx, updateDto);
+
+    // 4. DB結果を ResponseDto へ詰め替え
     return {
       token: generatedToken,
       id: currentUserId,
@@ -53,16 +86,51 @@ export class AuthService {
    * @param userId トランザクション実行者のID
    * @param txDateTime トランザクション開始日時
    * @param body AuthLogoutRequestDto
-   * @returns AuthLogoutResponseDto
+   * @returns ログアウト成功したらtrue
    */
   async logoutWithTx(
     prismaTx: PrismaTransaction,
     userId: string,
     txDateTime: Date,
-    body: AuthLogoutRequestDto,
-  ): Promise<AuthLogoutResponseDto> {
-    // 1. TODO: ユーザーテーブルのトークンをNULLに更新 (this.usersDao.updateUsers(prismaTx, updateDto))
-    // 2. TODO: ログアウト成功。空のDTOを返却
-    return {};
+  ): Promise<boolean> {
+    // 1. ユーザーテーブルのトークンをNULLに更新
+    const user = await this.usersDao.lockUsersById(prismaTx, userId);
+    if (!user) {
+      throw new NotFoundException('ユーザー情報が存在しません');
+    }
+    const updateDto: Users = {
+      ...user,
+      token: null,
+      updatedAt: txDateTime,
+      updatedBy: userId,
+    };
+    await this.usersDao.updateUsers(prismaTx, updateDto);
+
+    // 2. ログアウト成功。
+    return true;
+  }
+
+  /**
+   * 生のパスワードをハッシュ化する。
+   * @param rawPassword ハッシュ化する生のパスワード
+   * @returns ハッシュ化されたパスワード文字列
+   */
+  async getPasswordHash(rawPassword: string): Promise<string> {
+    const salt = await bcrypt.genSalt(SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(rawPassword, salt);
+    return hashedPassword;
+  }
+  /**
+   * 生のパスワードと既存のハッシュ化されたパスワードを照合する。
+   * @param rawPassword ユーザー入力の生のパスワード
+   * @param hashedPassword データベースなどに保存されているハッシュ化されたパスワード
+   * @returns パスワードが一致すれば true、そうでなければ false
+   */
+  async validatePassword(
+    rawPassword: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
+    const isMatch = await bcrypt.compare(rawPassword, hashedPassword);
+    return isMatch;
   }
 }

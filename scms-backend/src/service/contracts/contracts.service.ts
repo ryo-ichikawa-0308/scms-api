@@ -101,7 +101,6 @@ export class ContractsService {
     prismaTx: PrismaTransaction,
     userId: string,
     txDateTime: Date,
-    body: ContractsCancelRequestDto,
     query: ContractsCancelQueryDto,
   ): Promise<void> {
     // 1. TODO: 契約IDの存在チェックとアクセス権限チェック

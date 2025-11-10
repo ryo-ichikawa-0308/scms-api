@@ -8,18 +8,16 @@ import { UsersOrchestrator } from './users.orchestrator';
  */
 @Controller('users')
 export class UsersController {
-  constructor(
-    private readonly usersOrchestrator: UsersOrchestrator,
-  ) {}
+  constructor(private readonly usersOrchestrator: UsersOrchestrator) {}
 
   // ユーザー登録 (POST/create) API
   /**
    * ユーザー登録
    * @param body Request Body (UsersCreateRequestDto)
-   * @returns UsersCreateResponseDto (204 No Content)
+   * @returns UsersCreateResponseDto (201 Created)
    */
   @Post('/')
-  @HttpCode(HttpStatus.NO_CONTENT) // 204
+  @HttpCode(HttpStatus.CREATED) // 201
   async create(
     @Body() body: UsersCreateRequestDto,
   ): Promise<UsersCreateResponseDto> {

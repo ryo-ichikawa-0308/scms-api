@@ -7,13 +7,10 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport'; // Assumed from instruction template
-import type { Request } from 'express'; // Assumed from instruction template
-
+import { AuthGuard } from '@nestjs/passport';
+import type { Request } from 'express';
 import { AuthLoginRequestDto } from './dto/auth-login-request.dto';
 import { AuthLoginResponseDto } from './dto/auth-login-response.dto';
-import { AuthLogoutRequestDto } from './dto/auth-logout-request.dto';
-import { AuthLogoutResponseDto } from './dto/auth-logout-response.dto';
 import { AuthOrchestrator } from './auth.orchestrator';
 
 /**
@@ -41,20 +38,16 @@ export class AuthController {
   // ログアウト (POST/logout) API
   /**
    * ログアウト
-   * @param body Request Body (AuthLogoutRequestDto)
    * @param req Express Requestオブジェクト
-   * @returns AuthLogoutResponseDto
+   * @returns void
    */
   @Post('logout')
   @UseGuards(AuthGuard('jwt'))
-  @HttpCode(HttpStatus.NO_CONTENT) // 204
-  async logout(
-    @Body() body: AuthLogoutRequestDto,
-    @Req() req: Request, // Assumed to get userId from token
-  ): Promise<AuthLogoutResponseDto> {
-    const userId = (req.user as any)?.id ?? 'MOCK_USER_ID'; // TODO: 認証情報からユーザーIDを取得
-
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(@Req() req: Request): Promise<void> {
+    // 認証情報からユーザーIDを取得
+    const userId = req.user?.userId ?? '';
     // 処理委譲 (POST/logout -> Orchestrator)
-    return this.authOrchestrator.logout(body, userId);
+    await this.authOrchestrator.logout(userId);
   }
 }

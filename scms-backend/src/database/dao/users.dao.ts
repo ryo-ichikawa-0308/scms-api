@@ -16,6 +16,71 @@ export class UsersDao {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * IDでユーザーを取得する
+   * @param id ユーザーID
+   * @returns 取得したユーザー
+   */
+  async selectUsersById(id: string): Promise<Users | null> {
+    try {
+      const where: Prisma.UsersWhereInput = {
+        id: id,
+        isDeleted: false,
+      };
+      const user = await this.prisma.users.findFirst({ where });
+      return user;
+    } catch (e) {
+      throw new InternalServerErrorException(
+        e,
+        'ユーザーの取得中に予期せぬエラーが発生しました。',
+      );
+    }
+  }
+
+  /**
+   * メールアドレスでユーザーを取得する
+   * @param email メールアドレス
+   * @returns 取得したユーザー
+   */
+  async selectUsersByEmail(email: string): Promise<Users | null> {
+    try {
+      const where: Prisma.UsersWhereInput = {
+        email: email,
+        isDeleted: false,
+      };
+      const user = await this.prisma.users.findFirst({ where });
+      return user;
+    } catch (e) {
+      throw new InternalServerErrorException(
+        e,
+        'ユーザーの取得中に予期せぬエラーが発生しました。',
+      );
+    }
+  }
+
+  /**
+   * ユーザーテーブルのロックを取得する
+   * @param prismaTx トランザクション
+   * @param id ユーザーID
+   * @returns ロックしたレコード
+   */
+  async lockUsersById(
+    prismaTx: PrismaTransaction,
+    id: string,
+  ): Promise<Users | null> {
+    const lockedRecords: Users[] = await prismaTx.$queryRaw<Users[]>`
+      SELECT * FROM Users 
+      WHERE id = ${id} AND is_deleted = false
+      FOR UPDATE
+    `;
+    if (lockedRecords.length === 0) {
+      throw new NotFoundException(
+        `ロック対象のユーザーレコード (ID: ${id}) が見つかりません。`,
+      );
+    }
+    return lockedRecords[0];
+  }
+
+  /**
    * ユーザーを取得する
    * @param dto ユーザーの検索用DTO
    * @returns 取得したテーブルの配列
@@ -48,10 +113,8 @@ export class UsersDao {
       });
       return users;
     } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError) {
-        // Prisma固有の例外処理はここでは省略し、予期せぬ例外として扱う
-      }
       throw new InternalServerErrorException(
+        e,
         'ユーザーの取得中に予期せぬエラーが発生しました。',
       );
     }
@@ -80,10 +143,8 @@ export class UsersDao {
       });
       return count;
     } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError) {
-        // Prisma固有の例外処理はここでは省略し、予期せぬ例外として扱う
-      }
       throw new InternalServerErrorException(
+        e,
         'ユーザーの件数取得中に予期せぬエラーが発生しました。',
       );
     }

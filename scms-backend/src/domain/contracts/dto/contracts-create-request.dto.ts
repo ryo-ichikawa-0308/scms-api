@@ -24,7 +24,7 @@ export class ContractsCreateRequestDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(36)
-  @MaxLength(63) // JSONの定義に従う
+  @MaxLength(36)
   @IsUUID()
   userServiceId: string;
 
