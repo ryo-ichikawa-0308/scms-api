@@ -1,6 +1,9 @@
-import { CurrentUser } from 'src/service/auth/jwt.strategy';
+import { JwtPayload } from 'src/service/auth/jwt.strategy';
 
 // ExpressのRequestオブジェクトを拡張し、認証情報を参照できるようにする。
-declare namespace Express {
-  type User = CurrentUser;
+declare global {
+  declare namespace Express {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    interface User extends JwtPayload {}
+  }
 }

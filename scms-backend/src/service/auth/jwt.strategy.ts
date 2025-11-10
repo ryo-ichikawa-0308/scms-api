@@ -4,12 +4,9 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsersDao } from 'src/database/dao/users.dao';
 
 // JWTペイロードのインターフェース
-export interface CurrentUser {
+export interface JwtPayload {
   userId: string;
   username: string;
-}
-export interface JwtPayload extends CurrentUser {
-  lastAuthTimestamp: Date;
 }
 
 @Injectable()
@@ -32,7 +29,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       userId: payload.userId,
       username: payload.username,
-      lastAuthTimestamp: new Date(),
     };
   }
 }
