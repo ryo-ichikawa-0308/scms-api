@@ -44,12 +44,18 @@ export class ListRequestBase {
  * リスト系取得APIのレスポンス基底クラス
  * ページネーションに必要なフィールドを定義する。
  */
-export class ListResponse<T> {
+export class ListResponseBase<T> {
   /** 検索条件にあてはまる総件数 */
   @IsNotEmpty({ message: '総件数は必須です。' })
   @IsInt({ message: '総件数は数値で入力してください。' })
   @Min(0, { message: '総件数は0以上で入力してください。' })
-  total: number;
+  totalCount: number;
+
+  /** 総ページ数(サーバー側でMath.ceil(totalCount / limit) として計算) */
+  @IsNotEmpty({ message: '総ページ数は必須です。' })
+  @IsInt({ message: '総ページ数は数値で入力してください。' })
+  @Min(1, { message: '総ページ数は1以上で入力してください。' })
+  totalPages: number;
 
   /** ページ番号(サーバー側で(offset / limit) + 1 として計算) */
   @IsNotEmpty({ message: 'ページ番号は必須です。' })
