@@ -68,7 +68,7 @@ export class UsersDao {
     id: string,
   ): Promise<Users | null> {
     const lockedRecords: Users[] = await prismaTx.$queryRaw<Users[]>`
-      SELECT * FROM Users 
+      SELECT id FROM users 
       WHERE id = ${id} AND is_deleted = false
       FOR UPDATE
     `;

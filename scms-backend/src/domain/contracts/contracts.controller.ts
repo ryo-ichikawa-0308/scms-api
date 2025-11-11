@@ -26,7 +26,7 @@ import { ContractsService } from '../../service/contracts/contracts.service';
  * Contracts系APIのControllerクラス
  */
 @Controller('contracts')
-@UseGuards(AuthGuard('jwt')) // 全APIでauthRequired === true
+@UseGuards(AuthGuard('jwt'))
 export class ContractsController {
   constructor(
     private readonly contractsOrchestrator: ContractsOrchestrator,

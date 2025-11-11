@@ -64,7 +64,7 @@ export class ContractsDao {
     id: string,
   ): Promise<Contracts | null> {
     const lockedRecords: Contracts[] = await prismaTx.$queryRaw<Contracts[]>`
-      SELECT * FROM Contracts 
+      SELECT id FROM contracts 
       WHERE id = ${id} AND is_deleted = false
       FOR UPDATE
     `;
