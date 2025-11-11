@@ -9,7 +9,7 @@ curl -X POST \
   http://localhost:3000/api/v1/users \
   -H "Content-Type: application/json" \
   -d '{ "name": "YOUR_NAME", "email": "yourname@example.com", "password": "password" }' \
-  -i
+  -i -v
 ```
 
 ※パスワードを一律「password」で設定する。
@@ -21,7 +21,7 @@ curl -X POST \
   http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{ "email": "yourname@example.com", "password": "password" }' \
-  -i
+  -i -v
 ```
 
 ※ここでレスポンスに出力されたトークンを、今後のコマンドの`{TOKEN}`に置き換える。
@@ -29,8 +29,9 @@ curl -X POST \
 ## ログアウトする
 
 ```bash
-curl -X POST 'http://localhost:3000/api/v1/auth/logout' \
+curl -X POST \
+  'http://localhost:3000/api/v1/auth/logout' \
   -H 'Authorization: Bearer {TOKEN}' \
   -H 'Content-Type: application/json' \
-  -i
+  -i -v
 ```
