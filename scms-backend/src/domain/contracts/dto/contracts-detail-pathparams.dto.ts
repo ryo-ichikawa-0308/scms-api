@@ -16,5 +16,5 @@ export class ContractsDetailPathParamsDto {
   @MinLength(36)
   @MaxLength(36)
   @IsUUID()
-  id: string; // JSON: contractId, Name: id
+  id: string;
 }

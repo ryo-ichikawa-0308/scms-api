@@ -9,14 +9,7 @@ import { ContractsServiceModule } from '../../service/contracts/contracts.servic
 @Module({
   imports: [ContractsServiceModule],
   controllers: [ContractsController],
-  providers: [
-    ContractsOrchestrator,
-    // TODO: PrismaTransaction型を提供するプロバイダー
-    {
-      provide: 'PrismaTransaction',
-      useValue: {},
-    },
-  ],
+  providers: [ContractsOrchestrator],
   exports: [ContractsOrchestrator],
 })
 export class ContractsDomainModule {}

@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import type { PrismaTransaction } from 'src/prisma/prisma.type';
-
 import { ContractsCreateRequestDto } from './dto/contracts-create-request.dto';
 import { ContractsCancelQueryDto } from './dto/contracts-cancel-query.dto';
 import { ContractsService } from '../../service/contracts/contracts.service';
@@ -26,13 +25,12 @@ export class ContractsOrchestrator {
     body: ContractsCreateRequestDto,
     userId: string,
   ): Promise<string> {
-    // 登録系Actionのオーケストレーションメソッドのテンプレート
+    // 1. 項目間関連チェック(Service層のメソッドを呼び出す)
+    await this.contractsService.isValidContract(body);
     const txDateTime = new Date();
-
+    // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, bodyを渡す
     return this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
-        // 1. TODO: 項目間関連チェック(Service層のメソッドを呼び出す)
-        // 2. TODO: Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, bodyを渡す
         const result = await this.contractsService.createWithTx(
           prismaTx,
           userId,
@@ -40,7 +38,7 @@ export class ContractsOrchestrator {
           body,
         );
 
-        // 3. TODO: 結果を返却
+        // 3. 結果を返却
         return result.id;
       },
     );
@@ -55,13 +53,13 @@ export class ContractsOrchestrator {
    * @returns void
    */
   async cancel(query: ContractsCancelQueryDto, userId: string): Promise<void> {
-    // 更新系Actionのオーケストレーションメソッドのテンプレート
-    const txDateTime = new Date();
+    // 1. 項目間関連チェック(Service層のメソッドを呼び出す)
+    await this.contractsService.isValidCancel(query);
 
+    // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, body, queryを渡す
+    const txDateTime = new Date();
     await this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
-        // 1. TODO: 項目間関連チェック(Service層のメソッドを呼び出す)
-        // 2. TODO: Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, body, queryを渡す
         await this.contractsService.cancelWithTx(
           prismaTx,
           userId,

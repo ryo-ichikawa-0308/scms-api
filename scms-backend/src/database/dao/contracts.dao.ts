@@ -11,6 +11,7 @@ import { Contracts, Prisma } from '@prisma/client';
 import {
   SelectContractsDto,
   CreateContractsDto,
+  ContractsDetailDto,
 } from 'src/database/dto/contracts.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -19,9 +20,65 @@ export class ContractsDao {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * 契約テーブルをIDで取得する
+   * @param id 契約ID
+   * @returns 契約テーブル(関連テーブル含む)
+   */
+  async selectContractsById(id: string): Promise<ContractsDetailDto | null> {
+    try {
+      const query: Prisma.ContractsFindFirstArgs = {
+        where: {
+          id: id,
+          isDeleted: false,
+        },
+        include: {
+          users: true,
+          userServices: {
+            include: {
+              users: true,
+              services: true,
+            },
+          },
+        },
+      };
+      const contractsDetail = (await this.prisma.contracts.findFirst(
+        query,
+      )) as ContractsDetailDto | null;
+      return contractsDetail;
+    } catch (e) {
+      throw new InternalServerErrorException(
+        e,
+        '契約の取得中に予期せぬエラーが発生しました。',
+      );
+    }
+  }
+
+  /**
+   * 契約テーブルのロックを取得する
+   * @param prismaTx トランザクション
+   * @param id ユーザーID
+   * @returns ロックしたレコード
+   */
+  async lockContractsById(
+    prismaTx: PrismaTransaction,
+    id: string,
+  ): Promise<Contracts | null> {
+    const lockedRecords: Contracts[] = await prismaTx.$queryRaw<Contracts[]>`
+      SELECT * FROM Contracts 
+      WHERE id = ${id} AND is_deleted = false
+      FOR UPDATE
+    `;
+    if (lockedRecords.length === 0) {
+      throw new NotFoundException(
+        `ロック対象の契約レコード (ID: ${id}) が見つかりません。`,
+      );
+    }
+    return lockedRecords[0];
+  }
+  /**
    * 契約を取得する
    * @param dto 契約の検索用DTO
-   * @returns 取得したテーブルの配列
+   * @returns 取得したテーブルの配列(関連テーブル含む)
    */
   async selectContracts(dto: SelectContractsDto): Promise<Contracts[]> {
     try {
@@ -34,7 +91,6 @@ export class ContractsDao {
       if (dto.userServicesId)
         where.userServicesId = { contains: dto.userServicesId };
       if (dto.quantity !== undefined) where.quantity = dto.quantity;
-      // 監査項目は検索対象外
 
       const orderBy: Prisma.ContractsOrderByWithRelationInput = {};
       if (dto.sortBy) {
@@ -42,18 +98,25 @@ export class ContractsDao {
         orderBy[dto.sortBy] = sortOrder;
       }
 
-      const contracts = await this.prisma.contracts.findMany({
+      const contracts = (await this.prisma.contracts.findMany({
         where,
         skip: dto.offset,
         take: dto.limit,
         orderBy: orderBy,
-      });
+        include: {
+          users: true,
+          userServices: {
+            include: {
+              users: true,
+              services: true,
+            },
+          },
+        },
+      })) as ContractsDetailDto[];
       return contracts;
     } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError) {
-        // Prisma固有の例外処理はここでは省略
-      }
       throw new InternalServerErrorException(
+        e,
         '契約の取得中に予期せぬエラーが発生しました。',
       );
     }

@@ -11,6 +11,7 @@ import { UserServices, Prisma } from '@prisma/client';
 import {
   SelectUserServicesDto,
   CreateUserServicesDto,
+  UserServicesDetailDto,
 } from 'src/database/dto/user_services.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -18,6 +19,61 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 export class UserServicesDao {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * ユーザー提供サービステーブルをIDで取得する
+   * @param id ユーザー提供サービスID
+   * @returns ユーザー提供サービステーブル(関連テーブル含む)
+   */
+  async selectUserServicesById(
+    id: string,
+  ): Promise<UserServicesDetailDto | null> {
+    try {
+      const query: Prisma.UserServicesFindFirstArgs = {
+        where: {
+          id: id,
+          isDeleted: false,
+        },
+        include: {
+          users: true,
+          services: true,
+        },
+      };
+      const userServicesDetail = (await this.prisma.userServices.findFirst(
+        query,
+      )) as UserServicesDetailDto | null;
+      return userServicesDetail;
+    } catch (e) {
+      throw new InternalServerErrorException(
+        e,
+        'ユーザー提供サービス情報の取得中に予期せぬエラーが発生しました。',
+      );
+    }
+  }
+
+  /**
+   * ユーザー提供サービステーブルのロックを取得する
+   * @param prismaTx トランザクション
+   * @param id ユーザーID
+   * @returns ロックしたレコード
+   */
+  async lockUserServicesById(
+    prismaTx: PrismaTransaction,
+    id: string,
+  ): Promise<UserServices | null> {
+    const lockedRecords: UserServices[] = await prismaTx.$queryRaw<
+      UserServices[]
+    >`
+        SELECT * FROM UserServices 
+        WHERE id = ${id} AND is_deleted = false
+        FOR UPDATE
+      `;
+    if (lockedRecords.length === 0) {
+      throw new NotFoundException(
+        `ロック対象の契約レコード (ID: ${id}) が見つかりません。`,
+      );
+    }
+    return lockedRecords[0];
+  }
   /**
    * ユーザー提供サービスを取得する
    * @param dto ユーザー提供サービスの検索用DTO

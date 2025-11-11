@@ -33,27 +33,24 @@ export class UsersService {
     body: UsersCreateRequestDto,
   ): Promise<UsersCreateResponseDto> {
     // 1. RequestDtoからDB登録データ (DAO) へ詰め替え (RequestDto -> CreateUsersDto)
+    const hashedPassword = await this.authService.getPasswordHash(
+      body.password,
+    );
     const createDto: CreateUsersDto = {
       name: body.name,
       email: body.name,
-      password: '', // 「ビジネスロジック実行」で設定
+      password: hashedPassword,
       registeredBy: userId,
       registeredAt: txDateTime,
     };
 
-    // 2. ビジネスロジックの実行 (バリデーション、採番、属性付与など)
-    const hashedPassword = await this.authService.getPasswordHash(
-      body.password,
-    );
-    createDto.password = hashedPassword;
-
-    // 3. DAOのtx対応メソッドを呼び出し、DB登録を実行 (prismaTxを渡す)
+    // 2. DAOのtx対応メソッドを呼び出し、DB登録を実行 (prismaTxを渡す)
     const createdUser = await this.usersDao.createUsers(prismaTx, createDto);
     if (!createdUser) {
       throw new InternalServerErrorException('ユーザー登録に失敗しました');
     }
 
-    // 4. 登録成功。
+    // 3. 登録成功。
     return { id: createdUser.id };
   }
 

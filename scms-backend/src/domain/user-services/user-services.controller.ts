@@ -7,11 +7,8 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import type { Request } from 'express';
-
 import { UserServicesListRequestDto } from './dto/user-services-list-request.dto';
 import { UserServicesListResponseDto } from './dto/user-services-list-response.dto';
 import { UserServicesDetailPathParamsDto } from './dto/user-services-detail-pathparams.dto';
@@ -23,7 +20,7 @@ import { UserServicesService } from '../../service/user-services/user-services.s
  * UserServices系APIのControllerクラス
  */
 @Controller('user-services')
-@UseGuards(AuthGuard('jwt')) // 全APIでauthRequired === true
+@UseGuards(AuthGuard('jwt'))
 export class UserServicesController {
   constructor(private readonly userServicesService: UserServicesService) {}
 
@@ -38,12 +35,9 @@ export class UserServicesController {
   @HttpCode(HttpStatus.OK)
   async list(
     @Body() body: UserServicesListRequestDto,
-    @Req() req: Request,
   ): Promise<UserServicesListResponseDto> {
-    const userId = (req.user as any)?.id ?? 'MOCK_USER_ID'; // TODO: 認証情報からユーザーIDを取得
-
     // 処理委譲 (POST/list -> Service)
-    return this.userServicesService.list(body, userId);
+    return this.userServicesService.list(body);
   }
 
   // サービス詳細 (GET/detail) API
@@ -52,18 +46,15 @@ export class UserServicesController {
    * @param pathParams Pathパラメータ (UserServicesDetailPathParamsDto)
    * @returns UserServicesDetailResponseDto
    */
-  @Get(':id') // :id は pathParameters.name から。JSON endpoint: /user-services/{serviceId}
+  @Get(':id')
   @HttpCode(HttpStatus.OK)
   async detail(
     @Param() pathParams: UserServicesDetailPathParamsDto,
-    @Req() req: Request,
   ): Promise<UserServicesDetailResponseDto> {
-    const userId = (req.user as any)?.id ?? 'MOCK_USER_ID'; // TODO: 認証情報からユーザーIDを取得
-
     // 1. Path/Queryパラメータの統合
     const query: UserServicesDetailQueryDto = { ...pathParams };
 
     // 2. 処理委譲 (GETメソッドはServiceに委譲)
-    return this.userServicesService.detail(query, userId);
+    return this.userServicesService.detail(query);
   }
 }

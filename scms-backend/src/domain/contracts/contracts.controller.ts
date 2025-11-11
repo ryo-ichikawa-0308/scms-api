@@ -22,8 +22,6 @@ import { ContractsCreateRequestDto } from './dto/contracts-create-request.dto';
 import { ContractsCreateResponseDto } from './dto/contracts-create-response.dto';
 import { ContractsCancelPathParamsDto } from './dto/contracts-cancel-pathparams.dto';
 import { ContractsCancelQueryDto } from './dto/contracts-cancel-query.dto';
-import { ContractsCancelRequestDto } from './dto/contracts-cancel-request.dto';
-import { ContractsCancelResponseDto } from './dto/contracts-cancel-response.dto';
 import { ContractsOrchestrator } from './contracts.orchestrator';
 import { ContractsService } from '../../service/contracts/contracts.service';
 
@@ -51,8 +49,7 @@ export class ContractsController {
     @Body() body: ContractsListRequestDto,
     @Req() req: Request,
   ): Promise<ContractsListResponseDto> {
-    const userId = (req.user as any)?.id ?? 'MOCK_USER_ID';
-
+    const userId = req.user?.userId ?? '';
     // 処理委譲 (POST/list -> Service)
     return this.contractsService.list(body, userId);
   }
@@ -63,19 +60,15 @@ export class ContractsController {
    * @param pathParams Pathパラメータ (ContractsDetailPathParamsDto)
    * @returns ContractsDetailResponseDto
    */
-  @Get(':id') // :id は pathParameters.name から。
+  @Get(':id')
   @HttpCode(HttpStatus.OK)
   async detail(
     @Param() pathParams: ContractsDetailPathParamsDto,
-    @Req() req: Request,
   ): Promise<ContractsDetailResponseDto> {
-    const userId = (req.user as any)?.id ?? 'MOCK_USER_ID';
-
     // 1. Path/Queryパラメータの統合
     const query: ContractsDetailQueryDto = { ...pathParams };
-
     // 2. 処理委譲 (GETメソッドはServiceに委譲)
-    return this.contractsService.detail(query, userId);
+    return this.contractsService.detail(query);
   }
 
   // サービス契約 (POST/create) API
@@ -86,13 +79,12 @@ export class ContractsController {
    * @returns ContractsCreateResponseDto
    */
   @Post('/')
-  @HttpCode(HttpStatus.CREATED) // 201 Created (IDを返すため)
+  @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() body: ContractsCreateRequestDto,
     @Req() req: Request,
   ): Promise<ContractsCreateResponseDto> {
-    const userId = (req.user as any)?.id ?? 'MOCK_USER_ID';
-
+    const userId = req.user?.userId ?? '';
     // 処理委譲 (POST/create -> Orchestrator)
     const newId = await this.contractsOrchestrator.create(body, userId);
     return { id: newId };
@@ -106,20 +98,16 @@ export class ContractsController {
    * @param req Express Requestオブジェクト
    * @returns ContractsCancelResponseDto
    */
-  @Patch(':id') // :id は pathParameters.name から。
-  @HttpCode(HttpStatus.NO_CONTENT) // 204
+  @Patch(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async cancel(
     @Param() pathParams: ContractsCancelPathParamsDto,
-    @Body() body: ContractsCancelRequestDto,
     @Req() req: Request,
-  ): Promise<ContractsCancelResponseDto> {
-    const userId = (req.user as any)?.id ?? 'MOCK_USER_ID';
-
+  ): Promise<void> {
+    const userId = req.user?.userId ?? '';
     // 1. クエリの結合
     const query: ContractsCancelQueryDto = { ...pathParams };
-
     // 2. 処理委譲 (PATCH/cancel -> Orchestrator)
-    await this.contractsOrchestrator.cancel(body, query, userId);
-    return {};
+    await this.contractsOrchestrator.cancel(query, userId);
   }
 }
