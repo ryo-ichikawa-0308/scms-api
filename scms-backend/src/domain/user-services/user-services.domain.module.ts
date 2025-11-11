@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { UserServicesController } from './user-services.controller';
-import { UserServicesServiceModule } from '../../service/user-services/user-services.service.module'; // Service層のModuleをimport
+import { UserServicesServiceModule } from '../../service/user-services/user-services.service.module';
 
 /**
  * UserServicesドメインモジュール
@@ -8,9 +8,7 @@ import { UserServicesServiceModule } from '../../service/user-services/user-serv
 @Module({
   imports: [UserServicesServiceModule],
   controllers: [UserServicesController],
-  providers: [
-    // Note: Orchestratorがない
-  ],
+  providers: [],
   exports: [],
 })
 export class UserServicesDomainModule {}

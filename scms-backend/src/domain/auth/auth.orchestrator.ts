@@ -1,5 +1,8 @@
-import { Injectable, Inject } from '@nestjs/common';
-import type { PrismaTransaction } from 'src/prisma/prisma.type';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  PRISMA_TRANSACTION,
+  type PrismaTransaction,
+} from 'src/prisma/prisma.type';
 import { AuthLoginRequestDto } from './dto/auth-login-request.dto';
 import { AuthLoginResponseDto } from './dto/auth-login-response.dto';
 import { AuthService } from '../../service/auth/auth.service';
@@ -11,8 +14,7 @@ import { AuthService } from '../../service/auth/auth.service';
 export class AuthOrchestrator {
   constructor(
     private readonly authService: AuthService,
-    // PrismaServiceから $transaction のみ公開するインターフェースをDI
-    @Inject('PrismaTransaction')
+    @Inject(PRISMA_TRANSACTION)
     private readonly prismaTransaction: PrismaTransaction,
   ) {}
 
@@ -26,18 +28,14 @@ export class AuthOrchestrator {
     // ログインは認証(Service)とトークン更新(DB write)を含むため、Orchestratorでトランザクション管理を行う
     return this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
-        // 1. TODO: 項目間関連チェック(Service層のメソッドを呼び出す)
+        // 1. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, bodyを渡す
         const txDateTime = new Date();
-        // 2. TODO: Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, bodyを渡す
-        const userId = 'MOCK_USER_ID_AFTER_AUTH'; // TODO: 認証成功後にユーザーIDを取得する
         const result = await this.authService.loginWithTx(
           prismaTx,
-          userId,
           txDateTime,
           body,
         );
-
-        // 3. TODO: 結果を返却
+        // 2. 結果を返却
         return result;
       },
     );

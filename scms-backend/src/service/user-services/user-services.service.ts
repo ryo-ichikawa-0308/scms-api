@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserServicesDao } from 'src/database/dao/user_services.dao';
 import { UserServicesListRequestDto } from '../../domain/user-services/dto/user-services-list-request.dto';
 import { UserServicesListResponseDto } from '../../domain/user-services/dto/user-services-list-response.dto';
-import { UserServicesDetailQueryDto } from '../../domain/user-services/dto/user-services-detail-query.dto';
 import { UserServicesDetailResponseDto } from '../../domain/user-services/dto/user-services-detail-response.dto';
 import {
   SelectUserServicesDto,
@@ -75,16 +74,12 @@ export class UserServicesService {
   // サービス詳細 (GET/detail)
   /**
    * サービス詳細
-   * @param query UserServicesDetailQueryDto
+   * @param id サービスID
    * @returns UserServicesDetailResponseDto
    */
-  async detail(
-    query: UserServicesDetailQueryDto,
-  ): Promise<UserServicesDetailResponseDto> {
+  async detail(id: string): Promise<UserServicesDetailResponseDto> {
     // 1. DatabaseModule (DAO) を呼び出し、DB検索を実行
-    const userService = await this.userServicesDao.selectUserServicesById(
-      query.id,
-    );
+    const userService = await this.userServicesDao.selectUserServicesById(id);
     if (!userService) {
       throw new NotFoundException('ユーザー提供サービスが見つかりません');
     }

@@ -12,7 +12,6 @@ import { AuthGuard } from '@nestjs/passport';
 import { UserServicesListRequestDto } from './dto/user-services-list-request.dto';
 import { UserServicesListResponseDto } from './dto/user-services-list-response.dto';
 import { UserServicesDetailPathParamsDto } from './dto/user-services-detail-pathparams.dto';
-import { UserServicesDetailQueryDto } from './dto/user-services-detail-query.dto';
 import { UserServicesDetailResponseDto } from './dto/user-services-detail-response.dto';
 import { UserServicesService } from '../../service/user-services/user-services.service';
 
@@ -51,10 +50,7 @@ export class UserServicesController {
   async detail(
     @Param() pathParams: UserServicesDetailPathParamsDto,
   ): Promise<UserServicesDetailResponseDto> {
-    // 1. Path/Queryパラメータの統合
-    const query: UserServicesDetailQueryDto = { ...pathParams };
-
-    // 2. 処理委譲 (GETメソッドはServiceに委譲)
-    return this.userServicesService.detail(query);
+    // 1. 処理委譲 (GETメソッドはServiceに委譲)
+    return this.userServicesService.detail(pathParams.id);
   }
 }

@@ -1,7 +1,9 @@
-import { Injectable, Inject, ConflictException } from '@nestjs/common';
-import type { PrismaTransaction } from 'src/prisma/prisma.type';
+import { Injectable, ConflictException, Inject } from '@nestjs/common';
+import {
+  PRISMA_TRANSACTION,
+  type PrismaTransaction,
+} from 'src/prisma/prisma.type';
 import { UsersCreateRequestDto } from './dto/users-create-request.dto';
-import { UsersCreateResponseDto } from './dto/users-create-response.dto';
 import { UsersService } from '../../service/users/users.service';
 
 /**
@@ -11,7 +13,7 @@ import { UsersService } from '../../service/users/users.service';
 export class UsersOrchestrator {
   constructor(
     private readonly usersService: UsersService,
-    @Inject('PrismaTransaction')
+    @Inject(PRISMA_TRANSACTION)
     private readonly prismaTransaction: PrismaTransaction,
   ) {}
 
@@ -19,12 +21,12 @@ export class UsersOrchestrator {
   /**
    * ユーザー登録
    * @param body UsersCreateRequestDto
-   * @returns UsersCreateResponseDto
+   * @returns 作成したユーザーのID
    */
-  async create(body: UsersCreateRequestDto): Promise<UsersCreateResponseDto> {
+  async create(body: UsersCreateRequestDto): Promise<string> {
     // 登録系Actionのオーケストレーションメソッドのテンプレート
     const txDateTime = new Date();
-    const userId = 'GUEST_USER'; // 認証を前提としないため、仮のユーザーID
+    const userId = 'USER_CREATE_API'; // 認証を前提としないため、ダミーの登録者IDを渡す
 
     const response = await this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
@@ -42,7 +44,6 @@ export class UsersOrchestrator {
         );
       },
     );
-
     return response;
   }
 }

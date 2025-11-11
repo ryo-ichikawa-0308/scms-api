@@ -1,9 +1,18 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { UsersDomainModule } from './domain/users/users.domain.module';
+import { AuthDomainModule } from './domain/auth/auth.domain.module';
+import { ContractsDomainModule } from './domain/contracts/contracts.domain.module';
+import { UserServicesDomainModule } from './domain/user-services/user-services.domain.module';
 
 @Module({
-  imports: [],
+  imports: [
+    AuthDomainModule,
+    UsersDomainModule,
+    ContractsDomainModule,
+    UserServicesDomainModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

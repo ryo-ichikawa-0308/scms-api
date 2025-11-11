@@ -16,12 +16,9 @@ import type { Request } from 'express';
 import { ContractsListRequestDto } from './dto/contracts-list-request.dto';
 import { ContractsListResponseDto } from './dto/contracts-list-response.dto';
 import { ContractsDetailPathParamsDto } from './dto/contracts-detail-pathparams.dto';
-import { ContractsDetailQueryDto } from './dto/contracts-detail-query.dto';
 import { ContractsDetailResponseDto } from './dto/contracts-detail-response.dto';
 import { ContractsCreateRequestDto } from './dto/contracts-create-request.dto';
-import { ContractsCreateResponseDto } from './dto/contracts-create-response.dto';
 import { ContractsCancelPathParamsDto } from './dto/contracts-cancel-pathparams.dto';
-import { ContractsCancelQueryDto } from './dto/contracts-cancel-query.dto';
 import { ContractsOrchestrator } from './contracts.orchestrator';
 import { ContractsService } from '../../service/contracts/contracts.service';
 
@@ -65,10 +62,8 @@ export class ContractsController {
   async detail(
     @Param() pathParams: ContractsDetailPathParamsDto,
   ): Promise<ContractsDetailResponseDto> {
-    // 1. Path/Queryパラメータの統合
-    const query: ContractsDetailQueryDto = { ...pathParams };
-    // 2. 処理委譲 (GETメソッドはServiceに委譲)
-    return this.contractsService.detail(query);
+    // 1. 処理委譲 (GETメソッドはServiceに委譲)
+    return this.contractsService.detail(pathParams.id);
   }
 
   // サービス契約 (POST/create) API
@@ -83,11 +78,11 @@ export class ContractsController {
   async create(
     @Body() body: ContractsCreateRequestDto,
     @Req() req: Request,
-  ): Promise<ContractsCreateResponseDto> {
+  ): Promise<string> {
     const userId = req.user?.userId ?? '';
     // 処理委譲 (POST/create -> Orchestrator)
     const newId = await this.contractsOrchestrator.create(body, userId);
-    return { id: newId };
+    return newId;
   }
 
   // サービス解約 (PATCH/cancel) API
@@ -105,9 +100,7 @@ export class ContractsController {
     @Req() req: Request,
   ): Promise<void> {
     const userId = req.user?.userId ?? '';
-    // 1. クエリの結合
-    const query: ContractsCancelQueryDto = { ...pathParams };
-    // 2. 処理委譲 (PATCH/cancel -> Orchestrator)
-    await this.contractsOrchestrator.cancel(query, userId);
+    // 1. 処理委譲 (PATCH/cancel -> Orchestrator)
+    await this.contractsOrchestrator.cancel(pathParams, userId);
   }
 }

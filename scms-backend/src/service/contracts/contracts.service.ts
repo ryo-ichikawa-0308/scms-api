@@ -8,11 +8,8 @@ import { PrismaTransaction } from 'src/prisma/prisma.type';
 import { ContractsDao } from 'src/database/dao/contracts.dao';
 import { ContractsListRequestDto } from '../../domain/contracts/dto/contracts-list-request.dto';
 import { ContractsListResponseDto } from '../../domain/contracts/dto/contracts-list-response.dto';
-import { ContractsDetailQueryDto } from '../../domain/contracts/dto/contracts-detail-query.dto';
 import { ContractsDetailResponseDto } from '../../domain/contracts/dto/contracts-detail-response.dto';
 import { ContractsCreateRequestDto } from '../../domain/contracts/dto/contracts-create-request.dto';
-import { ContractsCreateResponseDto } from '../../domain/contracts/dto/contracts-create-response.dto';
-import { ContractsCancelQueryDto } from '../../domain/contracts/dto/contracts-cancel-query.dto';
 import { UserServicesDao } from 'src/database/dao/user_services.dao';
 import {
   SelectContractsDto,
@@ -86,14 +83,12 @@ export class ContractsService {
   // 契約詳細 (GET/detail)
   /**
    * 契約詳細
-   * @param query ContractsDetailQueryDto
+   * @param id 契約ID
    * @returns ContractsDetailResponseDto
    */
-  async detail(
-    query: ContractsDetailQueryDto,
-  ): Promise<ContractsDetailResponseDto> {
+  async detail(id: string): Promise<ContractsDetailResponseDto> {
     // 読み取り系Serviceのロジック
-    const contract = await this.contractsDao.selectContractsById(query.id);
+    const contract = await this.contractsDao.selectContractsById(id);
     if (!contract) throw new NotFoundException('該当データが見つかりません');
 
     const response: ContractsDetailResponseDto = {
@@ -115,14 +110,14 @@ export class ContractsService {
    * @param userId トランザクション実行者のID
    * @param txDateTime トランザクション開始日時
    * @param body ContractsCreateRequestDto
-   * @returns ContractsCreateResponseDto
+   * @returns 作成した契約のID
    */
   async createWithTx(
     prismaTx: PrismaTransaction,
     userId: string,
     txDateTime: Date,
     body: ContractsCreateRequestDto,
-  ): Promise<ContractsCreateResponseDto> {
+  ): Promise<string> {
     // 1. RequestDtoからDB登録データ (DAO) へ詰め替え
     const createDto: CreateContractsDto = {
       usersId: userId,
@@ -162,8 +157,8 @@ export class ContractsService {
       );
     }
 
-    // 3. DB結果を ResponseDto へ詰め替え
-    return { id: contract.id } as ContractsCreateResponseDto;
+    // 3. ID返却
+    return contract.id;
   }
 
   // サービス解約 (PATCH/cancel) - トランザクション対応メソッド
@@ -172,21 +167,17 @@ export class ContractsService {
    * @param prismaTx トランザクション
    * @param userId トランザクション実行者のID
    * @param txDateTime トランザクション開始日時
-   * @param body ContractsCancelRequestDto
-   * @param query ContractsCancelQueryDto
-   * @returns ContractsCancelResponseDto (void)
+   * @param id 解約するサービスのID
+   * @returns void
    */
   async cancelWithTx(
     prismaTx: PrismaTransaction,
     userId: string,
     txDateTime: Date,
-    query: ContractsCancelQueryDto,
+    id: string,
   ): Promise<void> {
     // 1. DAOのtx対応メソッドを呼び出し、DB論理削除を実行
-    const contract = await this.contractsDao.lockContractsById(
-      prismaTx,
-      query.id,
-    );
+    const contract = await this.contractsDao.lockContractsById(prismaTx, id);
     if (!contract) {
       throw new NotFoundException('解約対象の契約が見つかりません');
     }
@@ -207,7 +198,7 @@ export class ContractsService {
     await this.userServicesDao.updateUserServices(prismaTx, userServiceDto);
     await this.contractsDao.softDeleteContracts(
       prismaTx,
-      query.id,
+      id,
       txDateTime,
       userId,
     );
@@ -233,11 +224,11 @@ export class ContractsService {
 
   /**
    * 解約対象の契約とサービスがあることを確認する。
-   * @param body ContractsCancelQueryDto
+   * @param id 解約するサービスID
    * @returns 解約可能な状態であればtrue
    */
-  async isValidCancel(body: ContractsCancelQueryDto): Promise<boolean> {
-    const contract = await this.contractsDao.selectContractsById(body.id);
+  async isValidCancel(id: string): Promise<boolean> {
+    const contract = await this.contractsDao.selectContractsById(id);
     if (!contract) {
       throw new NotFoundException('解約対象の契約が見つかりません');
     }

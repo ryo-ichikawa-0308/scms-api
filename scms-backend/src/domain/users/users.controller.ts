@@ -1,6 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { UsersCreateRequestDto } from './dto/users-create-request.dto';
-import { UsersCreateResponseDto } from './dto/users-create-response.dto';
 import { UsersOrchestrator } from './users.orchestrator';
 
 /**
@@ -14,13 +13,11 @@ export class UsersController {
   /**
    * ユーザー登録
    * @param body Request Body (UsersCreateRequestDto)
-   * @returns UsersCreateResponseDto (201 Created)
+   * @returns 作成したユーザーのID (201 Created)
    */
   @Post('/')
-  @HttpCode(HttpStatus.CREATED) // 201
-  async create(
-    @Body() body: UsersCreateRequestDto,
-  ): Promise<UsersCreateResponseDto> {
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() body: UsersCreateRequestDto): Promise<string> {
     // 処理委譲 (POST/create -> Orchestrator)
     return this.usersOrchestrator.create(body);
   }

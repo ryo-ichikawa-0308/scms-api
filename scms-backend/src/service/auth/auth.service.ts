@@ -28,14 +28,12 @@ export class AuthService {
   /**
    * ログイン処理 (トランザクション内実行)
    * @param prismaTx トランザクション
-   * @param userId トランザクション実行者のID
    * @param txDateTime トランザクション開始日時
    * @param body AuthLoginRequestDto
    * @returns AuthLoginResponseDto
    */
   async loginWithTx(
     prismaTx: PrismaTransaction,
-    userId: string,
     txDateTime: Date,
     body: AuthLoginRequestDto,
   ): Promise<AuthLoginResponseDto> {
@@ -58,7 +56,7 @@ export class AuthService {
     const userName = loginUser.name;
 
     // 3. ユーザーテーブルのトークンを更新
-    const user = await this.usersDao.lockUsersById(prismaTx, userId);
+    const user = await this.usersDao.lockUsersById(prismaTx, loginUser.id);
     if (!user) {
       throw new NotFoundException('ユーザー情報が存在しません');
     }
@@ -66,7 +64,7 @@ export class AuthService {
       ...user,
       token: generatedToken,
       updatedAt: txDateTime,
-      updatedBy: userId,
+      updatedBy: loginUser.id,
     };
 
     await this.usersDao.updateUsers(prismaTx, updateDto);

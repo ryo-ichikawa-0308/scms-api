@@ -1,9 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaTransaction } from 'src/prisma/prisma.type';
 import { UsersDao } from 'src/database/dao/users.dao';
-
 import { UsersCreateRequestDto } from '../../domain/users/dto/users-create-request.dto';
-import { UsersCreateResponseDto } from '../../domain/users/dto/users-create-response.dto';
 import { CreateUsersDto } from 'src/database/dto/users.dto';
 import { AuthService } from '../auth/auth.service';
 
@@ -24,14 +22,14 @@ export class UsersService {
    * @param userId トランザクション実行者のID
    * @param txDateTime トランザクション開始日時
    * @param body UsersCreateRequestDto
-   * @returns UsersCreateResponseDto
+   * @returns 作成したユーザーのID
    */
   async createWithTx(
     prismaTx: PrismaTransaction,
     userId: string,
     txDateTime: Date,
     body: UsersCreateRequestDto,
-  ): Promise<UsersCreateResponseDto> {
+  ): Promise<string> {
     // 1. RequestDtoからDB登録データ (DAO) へ詰め替え (RequestDto -> CreateUsersDto)
     const hashedPassword = await this.authService.getPasswordHash(
       body.password,
@@ -51,7 +49,7 @@ export class UsersService {
     }
 
     // 3. 登録成功。
-    return { id: createdUser.id };
+    return createdUser.id;
   }
 
   /**
