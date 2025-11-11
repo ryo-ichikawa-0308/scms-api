@@ -8,6 +8,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { Contracts, Services, UserServices, Users } from '@prisma/client';
 
 /**
  * 契約の標準検索用DTO
@@ -111,3 +112,12 @@ export class CreateContractsDto {
   @IsBoolean({ message: '削除フラグは真偽値で入力してください。' })
   isDeleted?: boolean;
 }
+
+/** 契約取得の型 */
+export type ContractsDetailDto = Contracts & {
+  users: Users;
+  userServices: UserServices & {
+    users: Users;
+    services: Services;
+  };
+};

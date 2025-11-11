@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client';
-
+import { PrismaService } from './prisma.service';
+export const PRISMA_TRANSACTION = 'PRISMA_TRANSACTION';
 // トランザクションの型
 export type PrismaTransaction = Omit<
-  PrismaClient,
+  PrismaService,
   | '$connect'
   | '$disconnect'
   | '$on'

@@ -8,6 +8,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { Services, Users, UserServices } from '@prisma/client';
 
 /**
  * ユーザー提供サービスの標準検索用DTO
@@ -27,6 +28,11 @@ export class SelectUserServicesDto {
   @IsOptional()
   @IsString({ message: 'サービスIDは文字列で入力してください。' })
   servicesId?: string;
+
+  /// サービス名
+  @IsOptional()
+  @IsString({ message: 'サービス名は文字列で入力してください。' })
+  servicesName?: string;
 
   /// 在庫数
   @IsOptional()
@@ -107,3 +113,9 @@ export class CreateUserServicesDto {
   @IsBoolean({ message: '削除フラグは真偽値で入力してください。' })
   isDeleted?: boolean;
 }
+
+/** ユーザー提供サービス取得の型 */
+export type UserServicesDetailDto = UserServices & {
+  users: Users;
+  services: Services;
+};

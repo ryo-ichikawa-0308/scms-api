@@ -12,13 +12,6 @@ export class PrismaService extends PrismaClient {
         { level: 'warn', emit: 'stdout' },
       ],
     });
-
-    // ログイベント
-    // this.$on('query', (e) => {
-    //   console.log('Query:', e.query);
-    //   console.log('Params:', e.params);
-    //   console.log('Duration:', e.duration, 'ms');
-    // });
     this.enableShutdownHooks();
   }
 
