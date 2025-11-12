@@ -8,10 +8,10 @@ import { Exclude, Type } from 'class-transformer';
 import { AuthResponseTokenDto } from './auth-response-token.dto';
 
 /**
- * ログイン レスポンスボディ
+ * トークンリフレッシュ レスポンスボディ
  */
-export class AuthLoginResponseDto {
-  constructor(partial: Partial<AuthLoginResponseDto>) {
+export class AuthRefreshResponseDto {
+  constructor(partial: Partial<AuthRefreshResponseDto>) {
     Object.assign(this, partial);
   }
   /**
@@ -22,20 +22,6 @@ export class AuthLoginResponseDto {
   @ValidateNested()
   @Type(() => AuthResponseTokenDto)
   token: AuthResponseTokenDto;
-
-  /**
-   * ユーザーID
-   */
-  @IsNotEmpty()
-  @IsString()
-  id: string;
-
-  /**
-   * ユーザー名
-   */
-  @IsNotEmpty()
-  @IsString()
-  name: string;
 
   /**
    * リフレッシュトークン(レスポンスJSONには載せない)
