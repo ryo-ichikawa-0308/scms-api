@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { DatabaseModule } from 'src/database/database.module';
-import { RefreshTokenService } from './refresh-token.service';
+import { RefreshTokenStrategy } from './refresh-token.strategy';
 
 @Module({
   imports: [
@@ -13,7 +13,7 @@ import { RefreshTokenService } from './refresh-token.service';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  providers: [RefreshTokenService],
-  exports: [JwtModule, RefreshTokenService],
+  providers: [RefreshTokenStrategy],
+  exports: [JwtModule, RefreshTokenStrategy],
 })
 export class RefreshTokenServiceModule {}

@@ -6,7 +6,7 @@ import { JwtPayload } from './jwt-payload';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
-export class AccessTokenService extends PassportStrategy(Strategy) {
+export class AccessTokenStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly usersDao: UsersDao,
     private jwtService: JwtService,

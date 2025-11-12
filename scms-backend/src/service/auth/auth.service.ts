@@ -8,9 +8,9 @@ import { UsersDao } from 'src/database/dao/users.dao';
 
 import * as bcrypt from 'bcrypt';
 import { Users } from '@prisma/client';
-import { RefreshTokenService } from './refresh-token.service';
+import { RefreshTokenStrategy } from './refresh-token.strategy';
 import { AuthLoginResponseDto } from 'src/domain/auth/dto/auth-login-response.dto';
-import { AccessTokenService } from './access-token.service';
+import { AccessTokenStrategy } from './access-token.strategy';
 import { AuthRefreshResponseDto } from 'src/domain/auth/dto/auth-refresh-response.dto';
 const SALT_ROUNDS = 10;
 
@@ -21,8 +21,8 @@ const SALT_ROUNDS = 10;
 export class AuthService {
   constructor(
     private readonly usersDao: UsersDao,
-    private readonly accessTokenService: AccessTokenService,
-    private readonly refreshTokenService: RefreshTokenService,
+    private readonly accessTokenStrategy: AccessTokenStrategy,
+    private readonly refreshTokenStrategy: RefreshTokenStrategy,
   ) {}
 
   // ログイン (POST/login) - トランザクション対応メソッド
@@ -44,7 +44,7 @@ export class AuthService {
       throw new NotFoundException('ユーザー情報が存在しません');
     }
     // 2. リフレッシュトークンを生成
-    const refreshToken = this.refreshTokenService.generateRefreshToken(
+    const refreshToken = this.refreshTokenStrategy.generateRefreshToken(
       loginUser.id,
       loginUser.name,
     );
@@ -63,7 +63,7 @@ export class AuthService {
     await this.usersDao.updateUsers(prismaTx, updateDto);
 
     // 4. アクセストークンを取得
-    const accessToken = this.accessTokenService.generateAccessToken(
+    const accessToken = this.accessTokenStrategy.generateAccessToken(
       user.id,
       user.name,
     );
@@ -127,7 +127,7 @@ export class AuthService {
     userName: string,
   ): Promise<AuthRefreshResponseDto> {
     // 1. DAOのtx対応メソッドを呼び出し、DB更新を実行 (prismaTxを渡す)
-    const generatedToken = this.refreshTokenService.generateRefreshToken(
+    const generatedToken = this.refreshTokenStrategy.generateRefreshToken(
       userId,
       userName,
     );
@@ -143,7 +143,7 @@ export class AuthService {
     };
     await this.usersDao.updateUsers(prismaTx, updateDto);
     // 4. アクセストークンを取得
-    const accessToken = this.accessTokenService.generateAccessToken(
+    const accessToken = this.accessTokenStrategy.generateAccessToken(
       user.id,
       user.name,
     );

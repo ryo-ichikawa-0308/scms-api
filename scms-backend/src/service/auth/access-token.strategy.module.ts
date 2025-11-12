@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { DatabaseModule } from 'src/database/database.module';
-import { AccessTokenService } from './access-token.service';
+import { AccessTokenStrategy } from './access-token.strategy';
 
 @Module({
   imports: [
@@ -13,7 +13,7 @@ import { AccessTokenService } from './access-token.service';
       signOptions: { expiresIn: '60m' },
     }),
   ],
-  providers: [AccessTokenService],
-  exports: [JwtModule, AccessTokenService],
+  providers: [AccessTokenStrategy],
+  exports: [JwtModule, AccessTokenStrategy],
 })
 export class AccessTokenServiceModule {}

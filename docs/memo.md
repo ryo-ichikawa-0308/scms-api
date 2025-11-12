@@ -1,37 +1,49 @@
-# APIのコマンド
+# API疎通コマンド
 
-APIの実証を行う上でのコマンド集
-
-## 新しいユーザーを作る
+## ユーザー登録の疎通
 
 ```bash
 curl -X POST \
-  http://localhost:3000/api/v1/users \
-  -H "Content-Type: application/json" \
-  -d '{ "name": "YOUR_NAME", "email": "yourname@example.com", "password": "password" }' \
-  -i -v
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     --data '{"email": "yourmail@example.com", "password": "password"}' \
+     http://localhost:3000/api/v1/users
 ```
 
-※パスワードを一律「password」で設定する。
-
-## ログインする
+## ログインAPIの疎通
 
 ```bash
 curl -X POST \
-  http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{ "email": "yourname@example.com", "password": "password" }' \
-  -i -v
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     --data '{"email": "yourmail@example.com", "password": "password"}' \
+     http://localhost:3000/api/v1/auth/login
 ```
 
-※ここでレスポンスに出力されたトークンを、今後のコマンドの`{TOKEN}`に置き換える。
-
-## ログアウトする
+## ログアウトAPIの疎通
 
 ```bash
 curl -X POST \
-  'http://localhost:3000/api/v1/auth/logout' \
-  -H 'Authorization: Bearer {TOKEN}' \
-  -H 'Content-Type: application/json' \
-  -i -v
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer ACCES_TOKEN" \
+     --compressed \
+     -d '{}' \
+     http://localhost:3000/api/v1/auth/logout
+```
+
+## トークンリフレッシュAPIの疎通
+
+```bash
+curl -X POST \
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer REFRESH_TOKEN" \
+     --compressed \
+     -d '{}' \
+     http://localhost:3000/api/v1/auth/refresh
 ```
