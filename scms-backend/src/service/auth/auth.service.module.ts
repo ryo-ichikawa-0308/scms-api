@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { DatabaseModule } from 'src/database/database.module';
-import { PassportModule } from '@nestjs/passport';
-import { JwtStrategy } from './jwt.strategy';
-import { JwtModule } from '@nestjs/jwt';
+import { AccessTokenServiceModule } from './access-token.service.module';
+import { RefreshTokenServiceModule } from './refresh-token.service.module';
 
 /**
  * Authサービスモジュール
@@ -11,13 +10,10 @@ import { JwtModule } from '@nestjs/jwt';
 @Module({
   imports: [
     DatabaseModule,
-    PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: 'YOUR_SECRET_KEY_FROM_ENV', // TODO: あとで環境変数取得に変更
-      signOptions: { expiresIn: '60m' },
-    }),
+    AccessTokenServiceModule,
+    RefreshTokenServiceModule,
   ],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService],
+  exports: [AuthService],
 })
 export class AuthServiceModule {}

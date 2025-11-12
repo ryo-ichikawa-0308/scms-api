@@ -2,16 +2,15 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsersDao } from 'src/database/dao/users.dao';
-
-// JWTペイロードのインターフェース
-export interface JwtPayload {
-  userId: string;
-  username: string;
-}
+import { JwtPayload } from './jwt-payload';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly usersDao: UsersDao) {
+export class AccessTokenService extends PassportStrategy(Strategy) {
+  constructor(
+    private readonly usersDao: UsersDao,
+    private jwtService: JwtService,
+  ) {
     super({
       // AuthorizationヘッダーのBearerスキームからJWTを抽出する
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -30,5 +29,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userId: payload.userId,
       username: payload.username,
     };
+  }
+  /**
+   * アクセストークンを生成する
+   * @param userId ペイロードに登録するユーザーID
+   * @param username ペイロードに登録するユーザー名
+   * @returns アクセストークン
+   */
+  generateAccessToken(userId: string, username: string): string {
+    const payload = { userId, username };
+    const accessToken = this.jwtService.sign(payload);
+    return accessToken;
   }
 }

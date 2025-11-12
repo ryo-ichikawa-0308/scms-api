@@ -6,12 +6,12 @@ import {
 import { PrismaTransaction } from 'src/prisma/prisma.type';
 import { UsersDao } from 'src/database/dao/users.dao';
 
-import { AuthLoginRequestDto } from '../../domain/auth/dto/auth-login-request.dto';
-import { AuthLoginResponseDto } from '../../domain/auth/dto/auth-login-response.dto';
-
 import * as bcrypt from 'bcrypt';
 import { Users } from '@prisma/client';
-import { JwtService } from '@nestjs/jwt';
+import { RefreshTokenService } from './refresh-token.service';
+import { AuthLoginResponseDto } from 'src/domain/auth/dto/auth-login-response.dto';
+import { AccessTokenService } from './access-token.service';
+import { AuthRefreshResponseDto } from 'src/domain/auth/dto/auth-refresh-response.dto';
 const SALT_ROUNDS = 10;
 
 /**
@@ -21,7 +21,8 @@ const SALT_ROUNDS = 10;
 export class AuthService {
   constructor(
     private readonly usersDao: UsersDao,
-    private readonly jwtService: JwtService,
+    private readonly accessTokenService: AccessTokenService,
+    private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
   // ログイン (POST/login) - トランザクション対応メソッド
@@ -30,30 +31,23 @@ export class AuthService {
    * @param prismaTx トランザクション
    * @param txDateTime トランザクション開始日時
    * @param body AuthLoginRequestDto
-   * @returns AuthLoginResponseDto
+   * @returns リフレッシュトークン
    */
   async loginWithTx(
     prismaTx: PrismaTransaction,
     txDateTime: Date,
-    body: AuthLoginRequestDto,
+    userId: string,
   ): Promise<AuthLoginResponseDto> {
-    // 1. 認証処理の実行 (メールアドレス/パスワード照合)
-    const loginUser = await this.usersDao.selectUsersByEmail(body.email);
+    // 1. ユーザー情報を取得
+    const loginUser = await this.usersDao.selectUsersById(userId);
     if (!loginUser) {
-      return new UnauthorizedException('認証情報が無効です');
+      throw new NotFoundException('ユーザー情報が存在しません');
     }
-    const isValidPassword = await this.validatePassword(
-      body.password,
-      loginUser.password,
+    // 2. リフレッシュトークンを生成
+    const refreshToken = this.refreshTokenService.generateRefreshToken(
+      loginUser.id,
+      loginUser.name,
     );
-    if (isValidPassword == false) {
-      return new UnauthorizedException('認証情報が無効です');
-    }
-    // 2. 認証成功後、JWTトークンを生成
-    const payload = { username: loginUser.name, userId: loginUser.id };
-    const generatedToken = this.jwtService.sign(payload);
-    const currentUserId = loginUser.id;
-    const userName = loginUser.name;
 
     // 3. ユーザーテーブルのトークンを更新
     const user = await this.usersDao.lockUsersById(prismaTx, loginUser.id);
@@ -62,19 +56,30 @@ export class AuthService {
     }
     const updateDto: Users = {
       ...user,
-      token: generatedToken,
+      token: refreshToken,
       updatedAt: txDateTime,
       updatedBy: loginUser.id,
     };
-
     await this.usersDao.updateUsers(prismaTx, updateDto);
 
-    // 4. DB結果を ResponseDto へ詰め替え
-    return {
-      token: generatedToken,
-      id: currentUserId,
-      name: userName,
-    } as AuthLoginResponseDto;
+    // 4. アクセストークンを取得
+    const accessToken = this.accessTokenService.generateAccessToken(
+      user.id,
+      user.name,
+    );
+
+    // 5. 認証情報を返却
+    const responseDto = new AuthLoginResponseDto({
+      id: user.id,
+      name: user.name,
+      token: {
+        accessToken: accessToken,
+        expiresIn: 100,
+      },
+      refreshToken: refreshToken,
+      refreshTokenExpiresIn: 1,
+    });
+    return responseDto;
   }
 
   // ログアウト (POST/logout) - トランザクション対応メソッド
@@ -107,6 +112,74 @@ export class AuthService {
     // 2. ログアウト成功。
     return true;
   }
+  /**
+   * トークンリフレッシュ (リフレッシュトークンを更新する。)
+   * @param prismaTx トランザクション
+   * @param txDateTime トランザクション開始日時
+   * @param userId ユーザーID
+   * @param userName ユーザー名
+   * @returns リフレッシュしたトークン
+   */
+  async refreshWithTx(
+    prismaTx: PrismaTransaction,
+    txDateTime: Date,
+    userId: string,
+    userName: string,
+  ): Promise<AuthRefreshResponseDto> {
+    // 1. DAOのtx対応メソッドを呼び出し、DB更新を実行 (prismaTxを渡す)
+    const generatedToken = this.refreshTokenService.generateRefreshToken(
+      userId,
+      userName,
+    );
+    const user = await this.usersDao.lockUsersById(prismaTx, userId);
+    if (!user) {
+      throw new NotFoundException('ユーザー情報が存在しません');
+    }
+    const updateDto: Users = {
+      ...user,
+      token: generatedToken,
+      updatedAt: txDateTime,
+      updatedBy: userId,
+    };
+    await this.usersDao.updateUsers(prismaTx, updateDto);
+    // 4. アクセストークンを取得
+    const accessToken = this.accessTokenService.generateAccessToken(
+      user.id,
+      user.name,
+    );
+
+    // 5. トークン情報を返却
+    const refreshDto = new AuthRefreshResponseDto({
+      token: {
+        accessToken: accessToken,
+        expiresIn: 100,
+      },
+      refreshToken: generatedToken,
+      refreshTokenExpiresIn: 1,
+    });
+    return refreshDto;
+  }
+
+  /**
+   * メールアドレスとパスワードで認証する
+   * @param email メールアドレス
+   * @param password パスワード
+   * @returns ユーザーID
+   */
+  async getUserId(email: string, password: string): Promise<string> {
+    const loginUser = await this.usersDao.selectUsersByEmail(email);
+    if (!loginUser) {
+      throw new UnauthorizedException('認証情報が無効です');
+    }
+    const isValidPassword = await this.validatePassword(
+      password,
+      loginUser.password,
+    );
+    if (isValidPassword == false) {
+      throw new UnauthorizedException('認証情報が無効です');
+    }
+    return loginUser.id;
+  }
 
   /**
    * 生のパスワードをハッシュ化する。
@@ -118,6 +191,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(rawPassword, salt);
     return hashedPassword;
   }
+
   /**
    * 生のパスワードと既存のハッシュ化されたパスワードを照合する。
    * @param rawPassword ユーザー入力の生のパスワード

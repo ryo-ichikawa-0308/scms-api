@@ -5,7 +5,6 @@ import { UsersDomainModule } from './domain/users/users.domain.module';
 import { AuthDomainModule } from './domain/auth/auth.domain.module';
 import { ContractsDomainModule } from './domain/contracts/contracts.domain.module';
 import { UserServicesDomainModule } from './domain/user-services/user-services.domain.module';
-
 @Module({
   imports: [
     AuthDomainModule,
