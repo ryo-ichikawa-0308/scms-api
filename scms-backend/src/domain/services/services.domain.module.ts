@@ -19,6 +19,6 @@ import { PRISMA_TRANSACTION } from 'src/prisma/prisma.type';
       inject: [PrismaService],
     },
   ],
-  exports: [ServicesController],
+  exports: [],
 })
 export class ServicesDomainModule {}

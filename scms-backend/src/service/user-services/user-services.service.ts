@@ -1,14 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserServicesDao } from 'src/database/dao/user_services.dao';
 import { UserServicesListRequestDto } from '../../domain/user-services/dto/user-services-list-request.dto';
 import { UserServicesListResponseDto } from '../../domain/user-services/dto/user-services-list-response.dto';
 import { UserServicesDetailResponseDto } from '../../domain/user-services/dto/user-services-detail-response.dto';
 import {
+  CreateUserServicesDto,
   SelectUserServicesDto,
   UserServicesDetailDto,
 } from 'src/database/dto/user_services.dto';
 import { UserServicesResponseServiceItemDto } from 'src/domain/user-services/dto/user-services-response-service-item.dto';
 import { CommonService } from '../common/common.service';
+import { PrismaTransaction } from 'src/prisma/prisma.type';
+import { UserServicesCreateRequestDto } from 'src/domain/user-services/dto/user-services-create-request.dto';
 
 /**
  * ユーザーサービスに関するビジネスロジックを実装したServiceクラス
@@ -94,5 +101,61 @@ export class UserServicesService {
       price: userService.services.price,
       unit: userService.services.unit,
     } as UserServicesDetailResponseDto;
+  }
+
+  /**
+   * ユーザー提供サービス登録
+   * @param prismaTx トランザクション
+   * @param userId トランザクション実行者のID
+   * @param txDateTime トランザクション開始日時
+   * @param query UserServicesCreateRequestDto
+   * @returns 作成したユーザー提供サービスのID
+   */
+  async createWithTx(
+    prismaTx: PrismaTransaction,
+    userId: string,
+    txDateTime: Date,
+    body: UserServicesCreateRequestDto,
+  ): Promise<string> {
+    // ビジネスロジックによるバリデーションは実施済みの前提。
+
+    // 1. RequestDtoからDB登録データ (DAO) へ詰め替え (RequestDto -> TableDto) schema.prismaの型情報、制約を利用する。
+    const createUserServiceDto: CreateUserServicesDto = {
+      usersId: body.userID,
+      servicesId: body.serviceID,
+      stock: body.stock,
+      registeredBy: userId,
+      registeredAt: txDateTime,
+      isDeleted: false,
+    };
+
+    // 2. DAOのtx対応メソッドを呼び出し、DB登録を実行 (prismaTxを渡す)
+    const createdUserService = await this.userServicesDao.createUserServices(
+      prismaTx,
+      createUserServiceDto,
+    );
+
+    if (!createdUserService) {
+      throw new InternalServerErrorException(
+        'ユーザー提供サービス登録に失敗しました',
+      );
+    }
+
+    // 3. DB結果を返却
+    return createdUserService.id;
+  }
+  /**
+   * サービス被りを確認する
+   * @param userId ユーザーID
+   * @param serviceId サービスID
+   * @returns 同一ユーザー提供サービスが存在したらtrue
+   */
+  async isUserServiceExists(
+    userId: string,
+    serviceId: string,
+  ): Promise<boolean> {
+    const userServicesExists =
+      await this.userServicesDao.selectUserServicesByIds(userId, serviceId);
+    return userServicesExists !== null;
   }
 }
