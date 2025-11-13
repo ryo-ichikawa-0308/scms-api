@@ -191,7 +191,6 @@ export class UserServicesDao {
     prismaTx: PrismaTransaction,
     dto: CreateUserServicesDto,
   ): Promise<UserServices> {
-    console.log(dto);
     try {
       const data: Prisma.UserServicesCreateInput = {
         id: dto.id,

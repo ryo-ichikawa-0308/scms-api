@@ -16,7 +16,7 @@ import {
   CreateContractsDto,
   ContractsDetailDto,
 } from 'src/database/dto/contracts.dto';
-import { UserServices } from '@prisma/client';
+import { Contracts, UserServices } from '@prisma/client';
 import { ContractsResponseContractItemDto } from 'src/domain/contracts/dto/contracts-response-contract-item.dto';
 import { CommonService } from '../common/common.service';
 
@@ -195,7 +195,15 @@ export class ContractsService {
       updatedAt: txDateTime,
       updatedBy: userId,
     };
+    const contractDto: Contracts = {
+      ...contract,
+      quantity: 0,
+      updatedAt: txDateTime,
+      updatedBy: userId,
+    };
+    await this.contractsDao.updateContracts(prismaTx, contractDto);
     await this.userServicesDao.updateUserServices(prismaTx, userServiceDto);
+    // 契約データを論理削除
     await this.contractsDao.softDeleteContracts(
       prismaTx,
       id,

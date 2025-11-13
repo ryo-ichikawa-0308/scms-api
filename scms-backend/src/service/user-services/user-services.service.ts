@@ -117,10 +117,7 @@ export class UserServicesService {
     txDateTime: Date,
     body: UserServicesCreateRequestDto,
   ): Promise<string> {
-    // ビジネスロジックによるバリデーションは実施済みの前提。
-
     // 1. RequestDtoからDB登録データ (DAO) へ詰め替え (RequestDto -> TableDto) schema.prismaの型情報、制約を利用する。
-    console.log(body);
     const createUserServiceDto: CreateUserServicesDto = {
       usersId: body.userId,
       servicesId: body.serviceId,
