@@ -19,6 +19,27 @@ export class ServicesDao {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * サービス名でサービスを取得する
+   * @param name サービス名
+   * @returns サービステーブルのレコード
+   */
+  async selectServicesByName(name: string): Promise<Services | null> {
+    try {
+      const where: Prisma.ServicesWhereInput = {
+        name: name,
+        isDeleted: false,
+      };
+      const service = await this.prisma.services.findFirst({ where });
+      return service;
+    } catch (e) {
+      throw new InternalServerErrorException(
+        e,
+        'サービスの取得中に予期せぬエラーが発生しました。',
+      );
+    }
+  }
+
+  /**
    * サービスを取得する
    * @param dto サービスの検索用DTO
    * @returns 取得したテーブルの配列

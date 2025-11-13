@@ -55,10 +55,10 @@ export class UsersService {
   /**
    * メールアドレスが登録済みか検査する
    * @param email 検査対象のメールアドレス
-   * @returns 1件以上存在したらtrue
+   * @returns 登録済みの場合true
    */
   async isEmailExists(email: string): Promise<boolean> {
-    const existedUsers = await this.usersDao.countUsers({ email: email });
-    return existedUsers > 0;
+    const existedUsers = await this.usersDao.selectUsersByEmail(email);
+    return existedUsers !== null;
   }
 }

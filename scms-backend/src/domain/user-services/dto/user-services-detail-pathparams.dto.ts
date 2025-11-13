@@ -16,5 +16,5 @@ export class UserServicesDetailPathParamsDto {
   @MinLength(36)
   @MaxLength(36)
   @IsUUID()
-  id: string; // JSON: serviceId, Name: id
+  id: string;
 }

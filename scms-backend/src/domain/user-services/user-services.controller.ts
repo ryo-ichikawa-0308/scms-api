@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UserServicesListRequestDto } from './dto/user-services-list-request.dto';
@@ -14,6 +15,9 @@ import { UserServicesListResponseDto } from './dto/user-services-list-response.d
 import { UserServicesDetailPathParamsDto } from './dto/user-services-detail-pathparams.dto';
 import { UserServicesDetailResponseDto } from './dto/user-services-detail-response.dto';
 import { UserServicesService } from '../../service/user-services/user-services.service';
+import { UserServicesCreateRequestDto } from './dto/user-services-create-request.dto';
+import { UserServicesOrchestrator } from './user-services.orchestrator';
+import type { Request } from 'express';
 
 /**
  * UserServices系APIのControllerクラス
@@ -21,7 +25,10 @@ import { UserServicesService } from '../../service/user-services/user-services.s
 @Controller('user-services')
 @UseGuards(AuthGuard('jwt'))
 export class UserServicesController {
-  constructor(private readonly userServicesService: UserServicesService) {}
+  constructor(
+    private readonly userServicesService: UserServicesService,
+    private readonly userServicesOrchestrator: UserServicesOrchestrator,
+  ) {}
 
   // サービス一覧 (POST/list) API
   /**
@@ -52,5 +59,23 @@ export class UserServicesController {
   ): Promise<UserServicesDetailResponseDto> {
     // 1. 処理委譲 (GETメソッドはServiceに委譲)
     return this.userServicesService.detail(pathParams.id);
+  }
+  /**
+   * ユーザー提供サービス登録
+   * @param body Request Body
+   * @param req Express Requestオブジェクト (authRequired === trueの場合のみ)
+   * @returns UserServicesCreateResponseDto
+   */
+  @Post() // endpoint: /user-services/
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.CREATED) // response.status: 201
+  async create(
+    @Body() body: UserServicesCreateRequestDto,
+    @Req() req: Request,
+  ): Promise<string> {
+    // 1. 認証情報からユーザーIDを取得
+    const userId = req.user?.userId ?? '';
+    // 2. 処理委譲 (POSTメソッドはOrchestratorに委譲)
+    return this.userServicesOrchestrator.create(body, userId);
   }
 }

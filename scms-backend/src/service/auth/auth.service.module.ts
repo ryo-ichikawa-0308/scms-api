@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { DatabaseModule } from 'src/database/database.module';
 import { AccessTokenServiceModule } from './access-token.strategy.module';
 import { RefreshTokenServiceModule } from './refresh-token.strategy.module';
+import { ConfigModule } from '@nestjs/config';
 
 /**
  * Authサービスモジュール
@@ -12,6 +13,7 @@ import { RefreshTokenServiceModule } from './refresh-token.strategy.module';
     DatabaseModule,
     AccessTokenServiceModule,
     RefreshTokenServiceModule,
+    ConfigModule,
   ],
   providers: [AuthService],
   exports: [AuthService],

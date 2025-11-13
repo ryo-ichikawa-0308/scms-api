@@ -20,6 +20,40 @@ export class UserServicesDao {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * ユーザー提供サービステーブルをID組み合わせで取得する
+   * @param usersId ユーザーID
+   * @param servicesId サービスID
+   * @returns ユーザー提供サービステーブル(関連テーブル含む)
+   */
+  async selectUserServicesByIds(
+    usersId: string,
+    servicesId: string,
+  ): Promise<UserServicesDetailDto | null> {
+    try {
+      const query: Prisma.UserServicesFindFirstArgs = {
+        where: {
+          usersId: usersId,
+          servicesId: servicesId,
+          isDeleted: false,
+        },
+        include: {
+          users: true,
+          services: true,
+        },
+      };
+      const userServicesDetail = (await this.prisma.userServices.findFirst(
+        query,
+      )) as UserServicesDetailDto | null;
+      return userServicesDetail;
+    } catch (e) {
+      throw new InternalServerErrorException(
+        e,
+        'ユーザー提供サービス情報の取得中に予期せぬエラーが発生しました。',
+      );
+    }
+  }
+
+  /**
    * ユーザー提供サービステーブルをIDで取得する
    * @param id ユーザー提供サービスID
    * @returns ユーザー提供サービステーブル(関連テーブル含む)
@@ -157,6 +191,7 @@ export class UserServicesDao {
     prismaTx: PrismaTransaction,
     dto: CreateUserServicesDto,
   ): Promise<UserServices> {
+    console.log(dto);
     try {
       const data: Prisma.UserServicesCreateInput = {
         id: dto.id,
