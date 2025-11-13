@@ -17,7 +17,6 @@ export class UserServicesOrchestrator {
     private readonly prismaTransaction: PrismaTransaction,
   ) {}
 
-  // 登録系Actionのオーケストレーションメソッド
   /**
    * ユーザー提供サービス登録
    * @param body UserServicesCreateRequestDto
@@ -28,31 +27,30 @@ export class UserServicesOrchestrator {
     body: UserServicesCreateRequestDto,
     userId: string,
   ): Promise<string> {
+    // 1. 項目間関連チェック(Service層のメソッドを呼び出す)
+    const isUserServiceExists =
+      await this.userServicesService.isUserServiceExists(
+        body.userId,
+        body.serviceId,
+      );
+    if (isUserServiceExists) {
+      throw new ConflictException('このユーザー提供サービスは登録できません');
+    }
+
+    // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, 各種dtoを渡す
     const txDateTime = new Date();
-    const result = await this.prismaTransaction.$transaction(
+    const response = await this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
-        // 1. 項目間関連チェック(Service層のメソッドを呼び出す)
-        const isUserServiceExists =
-          await this.userServicesService.isUserServiceExists(
-            body.userId,
-            body.serviceId,
-          );
-        if (isUserServiceExists) {
-          throw new ConflictException(
-            'このユーザー提供サービスは登録できません',
-          );
-        }
-        // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, 各種dtoを渡す
-        const response = await this.userServicesService.createWithTx(
+        const result = await this.userServicesService.createWithTx(
           prismaTx,
           userId,
           txDateTime,
           body,
         );
-        // 3. 登録したリソースのIDを返す
-        return response;
+        return result;
       },
     );
-    return result;
+    // 3. 登録したリソースのIDを返す
+    return response;
   }
 }

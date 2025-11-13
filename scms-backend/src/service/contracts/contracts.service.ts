@@ -31,7 +31,6 @@ export class ContractsService {
     private readonly userServicesDao: UserServicesDao,
   ) {}
 
-  // 契約一覧 (POST/list)
   /**
    * 契約一覧
    * @param body ContractsListRequestDto
@@ -74,13 +73,12 @@ export class ContractsService {
       body.limit,
     );
 
-    return {
+    return new ContractsListResponseDto({
       ...paging,
       contracts: resContracts,
-    } as ContractsListResponseDto;
+    });
   }
 
-  // 契約詳細 (GET/detail)
   /**
    * 契約詳細
    * @param id 契約ID
@@ -103,7 +101,6 @@ export class ContractsService {
     return response;
   }
 
-  // サービス契約 (POST/create) - トランザクション対応メソッド
   /**
    * サービス契約 (トランザクション内実行)
    * @param prismaTx トランザクション
@@ -161,7 +158,6 @@ export class ContractsService {
     return contract.id;
   }
 
-  // サービス解約 (PATCH/cancel) - トランザクション対応メソッド
   /**
    * サービス解約 (トランザクション内実行)
    * @param prismaTx トランザクション

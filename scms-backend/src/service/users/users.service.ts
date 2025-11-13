@@ -15,7 +15,6 @@ export class UsersService {
     private readonly authService: AuthService,
   ) {}
 
-  // ユーザー登録 (POST/create) - トランザクション対応メソッド
   /**
    * ユーザー登録 (トランザクション内実行)
    * @param prismaTx トランザクション

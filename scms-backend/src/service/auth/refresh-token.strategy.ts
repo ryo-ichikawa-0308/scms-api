@@ -25,7 +25,13 @@ export class RefreshTokenStrategy extends PassportStrategy(
       passReqToCallback: true,
     });
   }
-  // 署名検証に成功すると、このメソッドが呼ばれる
+
+  /**
+   * 署名検証後、リフレッシュトークンを検証する。
+   * @param req リクエスト
+   * @param payload JWTペイロード
+   * @returns 認証成功したら、ペイロードのデータを返す。
+   */
   async validate(req: Request, payload: JwtPayload) {
     // リクエストヘッダからAuthorizationを取得
     const authorizationHeader = req.headers['authorization'];
@@ -53,6 +59,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
       username: payload.username,
     };
   }
+
   /**
    * リフレッシュトークンを生成する
    * @param userId ペイロードに登録するユーザーID

@@ -5,6 +5,9 @@ import { DatabaseModule } from 'src/database/database.module';
 import { RefreshTokenStrategy } from './refresh-token.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
+/**
+ * リフレッシュトークンモジュール
+ */
 @Module({
   imports: [
     DatabaseModule,

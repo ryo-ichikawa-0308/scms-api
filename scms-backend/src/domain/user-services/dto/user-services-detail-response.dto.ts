@@ -3,7 +3,6 @@ import { IsOptional, IsString, IsNumber } from 'class-validator';
 /**
  * サービス詳細 レスポンスDTO
  */
-// Note: user-services-response-service-item.dto.ts と内容は同一だが、命名規則に従い別ファイルとして定義
 export class UserServicesDetailResponseDto {
   /** ID */
   @IsOptional()

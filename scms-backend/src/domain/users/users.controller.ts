@@ -9,11 +9,10 @@ import { UsersOrchestrator } from './users.orchestrator';
 export class UsersController {
   constructor(private readonly usersOrchestrator: UsersOrchestrator) {}
 
-  // ユーザー登録 (POST/create) API
   /**
    * ユーザー登録
    * @param body Request Body (UsersCreateRequestDto)
-   * @returns 作成したユーザーのID (201 Created)
+   * @returns 作成したユーザーのID
    */
   @Post('/')
   @HttpCode(HttpStatus.CREATED)

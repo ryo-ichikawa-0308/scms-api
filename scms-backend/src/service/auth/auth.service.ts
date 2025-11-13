@@ -88,7 +88,6 @@ export class AuthService {
     return responseDto;
   }
 
-  // ログアウト (POST/logout) - トランザクション対応メソッド
   /**
    * ログアウト処理 (トランザクション内実行)
    * @param prismaTx トランザクション
@@ -118,6 +117,7 @@ export class AuthService {
     // 2. ログアウト成功。
     return true;
   }
+
   /**
    * トークンリフレッシュ (リフレッシュトークンを更新する。)
    * @param prismaTx トランザクション
@@ -132,7 +132,7 @@ export class AuthService {
     userId: string,
     userName: string,
   ): Promise<AuthRefreshResponseDto> {
-    // 1. DAOのtx対応メソッドを呼び出し、DB更新を実行 (prismaTxを渡す)
+    // 1. DAOのtx対応メソッドを呼び出し、DB更新を実行
     const generatedToken = this.refreshTokenStrategy.generateRefreshToken(
       userId,
       userName,
@@ -148,13 +148,14 @@ export class AuthService {
       updatedBy: userId,
     };
     await this.usersDao.updateUsers(prismaTx, updateDto);
-    // 4. アクセストークンを取得
+
+    // 2. アクセストークンを取得
     const accessToken = this.accessTokenStrategy.generateAccessToken(
       userId,
       userName,
     );
 
-    // 5. トークン情報を返却
+    // 3. トークン情報を返却
     const refreshDto = new AuthRefreshResponseDto({
       token: {
         accessToken: accessToken,

@@ -21,7 +21,12 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // 署名検証に成功すると、このメソッドが呼ばれる
+  /**
+   * 署名検証後、アクセストークンを検証する。
+   * @param req リクエスト
+   * @param payload JWTペイロード
+   * @returns 認証成功したら、ペイロードのデータを返す。
+   */
   async validate(payload: JwtPayload) {
     const user = await this.usersDao.selectUsersById(payload.userId);
     if (!user) {
@@ -32,6 +37,7 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy) {
       username: payload.username,
     };
   }
+
   /**
    * アクセストークンを生成する
    * @param userId ペイロードに登録するユーザーID

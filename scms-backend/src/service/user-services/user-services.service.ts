@@ -18,7 +18,7 @@ import { PrismaTransaction } from 'src/prisma/prisma.type';
 import { UserServicesCreateRequestDto } from 'src/domain/user-services/dto/user-services-create-request.dto';
 
 /**
- * ユーザーサービスに関するビジネスロジックを実装したServiceクラス
+ * ユーザー提供サービスに関するビジネスロジックを実装したServiceクラス
  */
 @Injectable()
 export class UserServicesService {
@@ -27,7 +27,6 @@ export class UserServicesService {
     private readonly commonService: CommonService,
   ) {}
 
-  // サービス一覧 (POST/list)
   /**
    * サービス一覧
    * @param body UserServicesListRequestDto
@@ -72,13 +71,12 @@ export class UserServicesService {
     );
 
     // 4. ResponseDtoを返却
-    return {
+    return new UserServicesListResponseDto({
       ...paging,
       userServices: responseServices,
-    } as UserServicesListResponseDto;
+    });
   }
 
-  // サービス詳細 (GET/detail)
   /**
    * サービス詳細
    * @param id サービスID
@@ -117,7 +115,7 @@ export class UserServicesService {
     txDateTime: Date,
     body: UserServicesCreateRequestDto,
   ): Promise<string> {
-    // 1. RequestDtoからDB登録データ (DAO) へ詰め替え (RequestDto -> TableDto) schema.prismaの型情報、制約を利用する。
+    // 1. RequestDtoからDB登録データ (DAO) へ詰め替え
     const createUserServiceDto: CreateUserServicesDto = {
       usersId: body.userId,
       servicesId: body.serviceId,
@@ -127,7 +125,7 @@ export class UserServicesService {
       isDeleted: false,
     };
 
-    // 2. DAOのtx対応メソッドを呼び出し、DB登録を実行 (prismaTxを渡す)
+    // 2. DAOのtx対応メソッドを呼び出し、DB登録を実行
     const createdUserService = await this.userServicesDao.createUserServices(
       prismaTx,
       createUserServiceDto,

@@ -36,8 +36,10 @@ export class AuthController {
     @Body() body: AuthLoginRequestDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthLoginResponseDto> {
-    // 処理委譲 (POST/login -> Orchestrator)
+    // 1. 処理委譲 (POST/login -> Orchestrator)
     const loginDto = await this.authOrchestrator.login(body);
+
+    // 2. リフレッシュトークンをCookieに保存
     res.cookie('refresh_token', loginDto.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -46,6 +48,8 @@ export class AuthController {
         Date.now() + Number(loginDto.refreshTokenExpiresIn ?? 0),
       ),
     });
+
+    // 3. トークン情報を返却
     return loginDto;
   }
 
