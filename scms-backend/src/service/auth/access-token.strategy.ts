@@ -4,17 +4,19 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsersDao } from 'src/database/dao/users.dao';
 import { JwtPayload } from './jwt-payload';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AccessTokenStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly usersDao: UsersDao,
-    private jwtService: JwtService,
+    private readonly jwtService: JwtService,
+    configService: ConfigService,
   ) {
     super({
       // AuthorizationヘッダーのBearerスキームからJWTを抽出する
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: 'YOUR_SECRET_KEY_FROM_ENV', // TODO: あとで環境変数取得に変更
+      secretOrKey: configService.getOrThrow<string>('ACCESS_TOKEN_SECRET'),
       ignoreExpiration: false,
     });
   }

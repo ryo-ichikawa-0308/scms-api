@@ -26,7 +26,7 @@ export class ServicesController {
    */
   @Post()
   @UseGuards(AuthGuard('jwt'))
-  @HttpCode(HttpStatus.CREATED) // response.status: 201
+  @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() body: ServicesCreateRequestDto,
     @Req() req: Request,

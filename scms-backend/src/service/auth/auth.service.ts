@@ -12,6 +12,7 @@ import { RefreshTokenStrategy } from './refresh-token.strategy';
 import { AuthLoginResponseDto } from 'src/domain/auth/dto/auth-login-response.dto';
 import { AccessTokenStrategy } from './access-token.strategy';
 import { AuthRefreshResponseDto } from 'src/domain/auth/dto/auth-refresh-response.dto';
+import { ConfigService } from '@nestjs/config';
 const SALT_ROUNDS = 10;
 
 /**
@@ -23,6 +24,7 @@ export class AuthService {
     private readonly usersDao: UsersDao,
     private readonly accessTokenStrategy: AccessTokenStrategy,
     private readonly refreshTokenStrategy: RefreshTokenStrategy,
+    private readonly configService: ConfigService,
   ) {}
 
   // ログイン (POST/login) - トランザクション対応メソッド
@@ -74,10 +76,14 @@ export class AuthService {
       name: user.name,
       token: {
         accessToken: accessToken,
-        expiresIn: 100,
+        expiresIn: this.configService.getOrThrow<number>(
+          'ACCESS_TOKEN_EXPIRES',
+        ),
       },
       refreshToken: refreshToken,
-      refreshTokenExpiresIn: 1,
+      refreshTokenExpiresIn: this.configService.getOrThrow<number>(
+        'REFRESH_TOKEN_EXPIRES',
+      ),
     });
     return responseDto;
   }

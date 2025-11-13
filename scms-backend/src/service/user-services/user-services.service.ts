@@ -120,9 +120,10 @@ export class UserServicesService {
     // ビジネスロジックによるバリデーションは実施済みの前提。
 
     // 1. RequestDtoからDB登録データ (DAO) へ詰め替え (RequestDto -> TableDto) schema.prismaの型情報、制約を利用する。
+    console.log(body);
     const createUserServiceDto: CreateUserServicesDto = {
-      usersId: body.userID,
-      servicesId: body.serviceID,
+      usersId: body.userId,
+      servicesId: body.serviceId,
       stock: body.stock,
       registeredBy: userId,
       registeredAt: txDateTime,

@@ -20,7 +20,7 @@ export class UserServicesCreateRequestDto {
   @MinLength(36)
   @MaxLength(36)
   @IsUUID()
-  userID: string;
+  userId: string;
 
   /** サービスID */
   @IsNotEmpty()
@@ -28,7 +28,7 @@ export class UserServicesCreateRequestDto {
   @MinLength(36)
   @MaxLength(36)
   @IsUUID()
-  serviceID: string;
+  serviceId: string;
 
   /** 在庫数 */
   @IsNotEmpty()

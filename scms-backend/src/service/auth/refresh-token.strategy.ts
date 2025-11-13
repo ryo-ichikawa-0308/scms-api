@@ -5,6 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { JwtPayload } from './jwt-payload';
 import { UsersDao } from 'src/database/dao/users.dao';
 import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RefreshTokenStrategy extends PassportStrategy(
@@ -13,12 +14,13 @@ export class RefreshTokenStrategy extends PassportStrategy(
 ) {
   constructor(
     private readonly usersDao: UsersDao,
-    private jwtService: JwtService,
+    private readonly jwtService: JwtService,
+    configService: ConfigService,
   ) {
     super({
       // AuthorizationヘッダーのBearerスキームからJWTを抽出する
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: 'YOUR_SECRET_KEY_FROM_ENV', // TODO: あとで環境変数取得に変更
+      secretOrKey: configService.getOrThrow<string>('REFRESH_TOKEN_SECRET'),
       ignoreExpiration: false,
       passReqToCallback: true,
     });

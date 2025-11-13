@@ -19,6 +19,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       }),
       inject: [ConfigService],
     }),
+    ConfigModule,
   ],
   providers: [RefreshTokenStrategy],
   exports: [JwtModule, RefreshTokenStrategy],

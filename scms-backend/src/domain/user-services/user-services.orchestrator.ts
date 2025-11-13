@@ -34,8 +34,8 @@ export class UserServicesOrchestrator {
         // 1. 項目間関連チェック(Service層のメソッドを呼び出す)
         const isUserServiceExists =
           await this.userServicesService.isUserServiceExists(
-            body.userID,
-            body.serviceID,
+            body.userId,
+            body.serviceId,
           );
         if (isUserServiceExists) {
           throw new ConflictException(
