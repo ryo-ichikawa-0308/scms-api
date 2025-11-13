@@ -83,3 +83,77 @@ curl -X POST \
 ```
 
 ※戻り値でユーザー提供サービスIDが返ってくるので、メモしておく。
+
+## サービス一覧APIの疎通
+
+```bash
+curl -X POST \
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer ACCESS_TOKEN" \
+     --compressed \
+     -d '{"serviceName":"サービス"}' \
+     http://localhost:3000/api/v1/user-services/list
+```
+
+## サービス詳細APIの疎通
+
+```bash
+curl -X GET \
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer ACCESS_TOKEN" \
+     http://localhost:3000/api/v1/user-services/USER_SERVICE_UUID
+```
+
+## サービス契約APIの疎通
+
+```bash
+curl -X POST \
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer ACCESS_TOKEN" \
+     --compressed \
+     -d '{"userServiceId":"USER_SERVICE_ID", "quantity":5}' \
+     http://localhost:3000/api/v1/contracts
+```
+
+※戻り値で契約IDが返ってくるので、メモしておく。
+
+## 契約一覧APIの疎通
+
+```bash
+curl -X POST \
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer ACCESS_TOKEN" \
+     --compressed \
+     -d '{"serviceName":"サービス"}' \
+     http://localhost:3000/api/v1/contracts/list
+```
+
+## 契約詳細APIの疎通
+
+```bash
+curl -X GET \
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer ACCESS_TOKEN" \
+     http://localhost:3000/api/v1/contracts/CONTRACT_UUID
+```
+
+## 解約APIの疎通
+
+```bash
+curl -X PATCH \
+     -i \
+     -c /workspaces/sandbox/cookiejar.txt \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer ACCESS_TOKEN" \
+     http://localhost:3000/api/v1/contracts/CONTRACT_UUID
+```

@@ -64,7 +64,7 @@ export class ContractsDao {
     id: string,
   ): Promise<Contracts | null> {
     const lockedRecords: Contracts[] = await prismaTx.$queryRaw<Contracts[]>`
-      SELECT id FROM contracts 
+      SELECT id, user_services_id as userServicesId, quantity FROM contracts 
       WHERE id = ${id} AND is_deleted = false
       FOR UPDATE
     `;
@@ -82,27 +82,15 @@ export class ContractsDao {
    */
   async selectContracts(dto: SelectContractsDto): Promise<Contracts[]> {
     try {
-      const where: Prisma.ContractsWhereInput = {
-        isDeleted: false,
-      };
-
-      if (dto.id) where.id = { contains: dto.id };
-      if (dto.usersId) where.usersId = { contains: dto.usersId };
-      if (dto.userServicesId)
-        where.userServicesId = { contains: dto.userServicesId };
-      if (dto.quantity !== undefined) where.quantity = dto.quantity;
-
-      const orderBy: Prisma.ContractsOrderByWithRelationInput = {};
-      if (dto.sortBy) {
-        const sortOrder = dto.sortOrder || 'asc';
-        orderBy[dto.sortBy] = sortOrder;
-      }
-
-      const contracts = (await this.prisma.contracts.findMany({
-        where,
-        skip: dto.offset,
-        take: dto.limit,
-        orderBy: orderBy,
+      const query: Prisma.ContractsFindManyArgs = {
+        where: {
+          isDeleted: false,
+          userServices: {
+            services: {
+              name: { contains: dto.serviceName },
+            },
+          },
+        },
         include: {
           users: true,
           userServices: {
@@ -112,7 +100,27 @@ export class ContractsDao {
             },
           },
         },
-      })) as ContractsDetailDto[];
+      };
+
+      if (dto.id && query.where) query.where.id = { contains: dto.id };
+      if (dto.usersId && query.where)
+        query.where.usersId = { contains: dto.usersId };
+      if (dto.userServicesId && query.where)
+        query.where.userServicesId = { contains: dto.userServicesId };
+      if (dto.quantity !== undefined && query.where)
+        query.where.quantity = dto.quantity;
+
+      const orderBy: Prisma.ContractsOrderByWithRelationInput = {};
+      if (dto.sortBy) {
+        const sortOrder = dto.sortOrder || 'asc';
+        orderBy[dto.sortBy] = sortOrder;
+      }
+      query.skip = dto.offset;
+      query.take = dto.limit;
+      query.orderBy = orderBy;
+      const contracts = (await this.prisma.contracts.findMany(
+        query,
+      )) as ContractsDetailDto[];
       return contracts;
     } catch (e) {
       throw new InternalServerErrorException(
@@ -129,20 +137,26 @@ export class ContractsDao {
    */
   async countContracts(dto: SelectContractsDto): Promise<number> {
     try {
-      const where: Prisma.ContractsWhereInput = {
-        isDeleted: false,
+      const query: Prisma.ContractsCountArgs = {
+        where: {
+          isDeleted: false,
+          userServices: {
+            services: {
+              name: { contains: dto.serviceName },
+            },
+          },
+        },
       };
 
-      if (dto.id) where.id = { contains: dto.id };
-      if (dto.usersId) where.usersId = { contains: dto.usersId };
-      if (dto.userServicesId)
-        where.userServicesId = { contains: dto.userServicesId };
-      if (dto.quantity !== undefined) where.quantity = dto.quantity;
-      // 監査項目は検索対象外
+      if (dto.id && query.where) query.where.id = { contains: dto.id };
+      if (dto.usersId && query.where)
+        query.where.usersId = { contains: dto.usersId };
+      if (dto.userServicesId && query.where)
+        query.where.userServicesId = { contains: dto.userServicesId };
+      if (dto.quantity !== undefined && query.where)
+        query.where.quantity = dto.quantity;
 
-      const count = await this.prisma.contracts.count({
-        where,
-      });
+      const count = await this.prisma.contracts.count(query);
       return count;
     } catch (e) {
       if (e instanceof PrismaClientKnownRequestError) {
@@ -208,14 +222,12 @@ export class ContractsDao {
     updateData: Contracts,
   ): Promise<Contracts> {
     try {
-      const { id, usersId, userServicesId, ...data } = updateData;
+      const { id, ...data } = updateData;
 
       return await prismaTx.contracts.update({
         where: { id },
         data: {
           ...data,
-          users: { connect: { id: usersId } },
-          userServices: { connect: { id: userServicesId } },
         },
       });
     } catch (e) {

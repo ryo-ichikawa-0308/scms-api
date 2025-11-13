@@ -29,6 +29,12 @@ export class SelectContractsDto {
   @IsString({ message: 'ユーザー提供サービスIDは文字列で入力してください。' })
   userServicesId?: string;
 
+  /** サービス名 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  serviceName?: string;
+
   /// 契約数
   @IsOptional()
   @IsInt({ message: '契約数は数値で入力してください。' })
