@@ -66,14 +66,14 @@ export class AuthService {
 
     // 4. アクセストークンを取得
     const accessToken = this.accessTokenStrategy.generateAccessToken(
-      user.id,
-      user.name,
+      loginUser.id,
+      loginUser.name,
     );
 
     // 5. 認証情報を返却
     const responseDto = new AuthLoginResponseDto({
-      id: user.id,
-      name: user.name,
+      id: loginUser.id,
+      name: loginUser.name,
       token: {
         accessToken: accessToken,
         expiresIn: this.configService.getOrThrow<number>(
@@ -150,8 +150,8 @@ export class AuthService {
     await this.usersDao.updateUsers(prismaTx, updateDto);
     // 4. アクセストークンを取得
     const accessToken = this.accessTokenStrategy.generateAccessToken(
-      user.id,
-      user.name,
+      userId,
+      userName,
     );
 
     // 5. トークン情報を返却

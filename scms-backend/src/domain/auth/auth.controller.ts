@@ -42,7 +42,9 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      expires: new Date(Date.now() + (loginDto.refreshTokenExpiresIn ?? 0)),
+      expires: new Date(
+        Date.now() + Number(loginDto.refreshTokenExpiresIn ?? 0),
+      ),
     });
     return loginDto;
   }
@@ -85,7 +87,9 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      expires: new Date(Date.now() + (refreshDto.refreshTokenExpiresIn ?? 0)),
+      expires: new Date(
+        Date.now() + Number(refreshDto.refreshTokenExpiresIn ?? 0),
+      ),
     });
 
     // 4. トークン情報を返却

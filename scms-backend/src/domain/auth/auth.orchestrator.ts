@@ -29,10 +29,10 @@ export class AuthOrchestrator {
     // ログインは認証(Service)とトークン更新(DB write)を含むため、Orchestratorでトランザクション管理を行う
     // 1. ユーザーのIDとパスワードを認証する
     const userId = await this.authService.getUserId(body.email, body.password);
+    const txDateTime = new Date();
     const result = this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
         // 1. Service層のトランザクション対応メソッドを呼び出し、prismaTx, txDateTime, userIdを渡す。
-        const txDateTime = new Date();
         const result = await this.authService.loginWithTx(
           prismaTx,
           txDateTime,
