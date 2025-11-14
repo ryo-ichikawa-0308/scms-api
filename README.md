@@ -17,6 +17,8 @@ AIガバナンス実証サンプルAPI
 
 ### 設計と実装のプロセス
 
+設計書からAPIコード成果物までのフローを以下に示す。
+
 ```mermaid
 graph TD
     DB_DOC@{ shape: docs, label: "DB設計書" } --> DB-JSON_PROMPT{{DB設計書<BR>JSON変換プロンプト}}

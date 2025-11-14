@@ -1,76 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { validate } from 'class-validator';
-import { SelectUsersDto, CreateUsersDto } from 'src/database/dto/users.dto';
+import { CreateUsersDto } from 'src/database/dto/users.dto';
 
 const VALID_UUID = '12345678-1234-5678-1234-567812345678';
 
 describe('UsersDtoのテスト', () => {
-  describe('SelectUsersDtoのテスト', () => {
-    const validData: SelectUsersDto = {
-      id: VALID_UUID,
-      name: 'テストユーザー',
-      email: 'test@example.com',
-      password: 'password123',
-      token: 'token123',
-      offset: 0,
-      limit: 10,
-      sortBy: 'name',
-      sortOrder: 'asc',
-    };
-
-    describe('正常系', () => {
-      test('全項目に入力がある場合', async () => {
-        const dto = new SelectUsersDto();
-        Object.assign(dto, validData);
-        const errors = await validate(dto);
-        expect(errors.length).toBe(0);
-      });
-      test('任意項目のみに入力がある場合 (空のDTO)', async () => {
-        const dto = new SelectUsersDto();
-        const errors = await validate(dto);
-        expect(errors.length).toBe(0);
-      });
-      test('ページング項目のみに入力がある場合', async () => {
-        const dto = new SelectUsersDto();
-        dto.offset = 1;
-        dto.limit = 50;
-        const errors = await validate(dto);
-        expect(errors.length).toBe(0);
-      });
-    });
-
-    describe('異常系', () => {
-      test('型違反の入力がある場合', async () => {
-        const dto = new SelectUsersDto();
-        dto.id = 123 as any; // 文字列型違反
-        dto.email = 123 as any; // 文字列型違反
-        dto.offset = 'invalid' as any; // 数値型違反
-
-        const errors = await validate(dto);
-        expect(errors.length).toBeGreaterThan(0);
-        expect(
-          errors.some((e) => e.property === 'id' && e.constraints?.isString),
-        ).toBe(true);
-        expect(
-          errors.some((e) => e.property === 'email' && e.constraints?.isString),
-        ).toBe(true);
-        expect(
-          errors.some((e) => e.property === 'offset' && e.constraints?.isInt),
-        ).toBe(true);
-      });
-      test('メールアドレスの形式違反の入力がある場合', async () => {
-        const dto = new SelectUsersDto();
-        dto.email = 'invalid-email';
-
-        const errors = await validate(dto);
-        expect(errors.length).toBeGreaterThan(0);
-        expect(
-          errors.some((e) => e.property === 'email' && e.constraints?.isEmail),
-        ).toBe(true);
-      });
-    });
-  });
-
   describe('CreateUsersDtoのテスト', () => {
     const requiredData = {
       name: '登録ユーザー',

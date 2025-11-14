@@ -3,65 +3,11 @@ import {
   IsOptional,
   IsDate,
   IsBoolean,
-  IsInt,
   MaxLength,
   IsUUID,
   IsEmail,
   Length,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-
-/**
- * ユーザーの標準検索用DTO
- */
-export class SelectUsersDto {
-  /// ID
-  @IsOptional()
-  @IsString({ message: 'IDは文字列で入力してください。' })
-  id?: string;
-
-  /// ユーザー名
-  @IsOptional()
-  @IsString({ message: 'ユーザー名は文字列で入力してください。' })
-  name?: string;
-
-  /// メールアドレス
-  @IsOptional()
-  @IsString({ message: 'メールアドレスは文字列で入力してください。' })
-  @IsEmail(
-    {},
-    { message: 'メールアドレスはメールアドレスで入力してください。' },
-  ) // TODO: 形式名: メールアドレス
-  email?: string;
-
-  /// パスワード
-  @IsOptional()
-  @IsString({ message: 'パスワードは文字列で入力してください。' })
-  password?: string;
-
-  /// 認証トークン
-  @IsOptional()
-  @IsString({ message: '認証トークンは文字列で入力してください。' })
-  token?: string;
-
-  @IsOptional()
-  @IsInt({ message: 'offsetは数値で入力してください。' })
-  @Type(() => Number)
-  offset?: number;
-
-  @IsOptional()
-  @IsInt({ message: 'limitは数値で入力してください。' })
-  @Type(() => Number)
-  limit?: number;
-
-  @IsOptional()
-  @IsString({ message: 'sortByは文字列で入力してください。' })
-  sortBy?: string;
-
-  @IsOptional()
-  @IsString({ message: 'sortOrderは文字列で入力してください。' })
-  sortOrder?: 'asc' | 'desc';
-}
 
 /**
  * ユーザーの登録用DTO
