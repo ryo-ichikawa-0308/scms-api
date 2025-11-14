@@ -1,41 +1,8 @@
-import { IsOptional, IsString, IsNumber } from 'class-validator';
+import { UserServicesResponseServiceItemDto } from './user-services-response-service-item.dto';
 
 /**
  * サービス詳細 レスポンスDTO
  */
-export class UserServicesDetailResponseDto {
-  /** ID */
-  @IsOptional()
-  @IsString()
-  id?: string;
-
-  /** ユーザーID */
-  @IsOptional()
-  @IsString()
-  usersId?: string;
-
-  /** サービスID */
-  @IsOptional()
-  @IsString()
-  servicesId?: string;
-
-  /** サービス名 */
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  /** 概要 */
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  /** 単価 */
-  @IsOptional()
-  @IsNumber()
-  price?: number;
-
-  /** 単位 */
-  @IsOptional()
-  @IsString()
-  unit?: string;
+export class UserServicesDetailResponseDto extends UserServicesResponseServiceItemDto {
+  // ユーザー提供サービスの明細と同じデータ構造
 }
