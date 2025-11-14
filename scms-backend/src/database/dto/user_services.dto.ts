@@ -14,31 +14,10 @@ import { Services, Users, UserServices } from '@prisma/client';
  * ユーザー提供サービスの標準検索用DTO
  */
 export class SelectUserServicesDto {
-  /// ID
-  @IsOptional()
-  @IsString({ message: 'IDは文字列で入力してください。' })
-  id?: string;
-
-  /// ユーザーID
-  @IsOptional()
-  @IsString({ message: 'ユーザーIDは文字列で入力してください。' })
-  usersId?: string;
-
-  /// サービスID
-  @IsOptional()
-  @IsString({ message: 'サービスIDは文字列で入力してください。' })
-  servicesId?: string;
-
   /// サービス名
   @IsOptional()
   @IsString({ message: 'サービス名は文字列で入力してください。' })
   servicesName?: string;
-
-  /// 在庫数
-  @IsOptional()
-  @IsInt({ message: '在庫数は数値で入力してください。' })
-  @Type(() => Number)
-  stock?: number;
 
   @IsOptional()
   @IsInt({ message: 'offsetは数値で入力してください。' })
