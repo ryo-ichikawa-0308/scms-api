@@ -10,55 +10,6 @@ import {
 import { Type } from 'class-transformer';
 
 /**
- * サービスの標準検索用DTO
- */
-export class SelectServicesDto {
-  /// ID
-  @IsOptional()
-  @IsString({ message: 'IDは文字列で入力してください。' })
-  id?: string;
-
-  /// サービス名
-  @IsOptional()
-  @IsString({ message: 'サービス名は文字列で入力してください。' })
-  name?: string;
-
-  /// 概要
-  @IsOptional()
-  @IsString({ message: '概要は文字列で入力してください。' })
-  description?: string;
-
-  /// 単価
-  @IsOptional()
-  @IsInt({ message: '単価は数値で入力してください。' })
-  @Type(() => Number)
-  price?: number;
-
-  /// 単位
-  @IsOptional()
-  @IsString({ message: '単位は文字列で入力してください。' })
-  unit?: string;
-
-  @IsOptional()
-  @IsInt({ message: 'offsetは数値で入力してください。' })
-  @Type(() => Number)
-  offset?: number;
-
-  @IsOptional()
-  @IsInt({ message: 'limitは数値で入力してください。' })
-  @Type(() => Number)
-  limit?: number;
-
-  @IsOptional()
-  @IsString({ message: 'sortByは文字列で入力してください。' })
-  sortBy?: string;
-
-  @IsOptional()
-  @IsString({ message: 'sortOrderは文字列で入力してください。' })
-  sortOrder?: 'asc' | 'desc';
-}
-
-/**
  * サービスの登録用DTO
  */
 export class CreateServicesDto {
