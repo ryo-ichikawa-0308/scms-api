@@ -13,12 +13,6 @@ import { Type } from 'class-transformer';
  * サービスの登録用DTO
  */
 export class CreateServicesDto {
-  /// ID
-  @IsOptional()
-  @IsUUID('4', { message: 'IDは文字列で入力してください。' })
-  @MaxLength(36, { message: 'IDは36桁以下で入力してください。' })
-  id?: string;
-
   /// サービス名
   @MaxLength(256, { message: 'サービス名は256桁以下で入力してください。' })
   @IsString({ message: 'サービス名は文字列で入力してください。' })
@@ -45,7 +39,7 @@ export class CreateServicesDto {
   registeredAt?: Date;
 
   /// 登録者
-  @IsUUID('4', { message: '登録者は文字列で入力してください。' })
+  @IsUUID('4', { message: '登録者はUUIDで入力してください。' })
   @MaxLength(36, { message: '登録者は36桁以下で入力してください。' })
   @IsString({ message: '登録者は文字列で入力してください。' })
   registeredBy: string;
@@ -57,7 +51,7 @@ export class CreateServicesDto {
 
   /// 更新者
   @IsOptional()
-  @IsUUID('4', { message: '更新者は文字列で入力してください。' })
+  @IsUUID('4', { message: '更新者はUUIDで入力してください。' })
   @MaxLength(36, { message: '更新者は36桁以下で入力してください。' })
   updatedBy?: string;
 

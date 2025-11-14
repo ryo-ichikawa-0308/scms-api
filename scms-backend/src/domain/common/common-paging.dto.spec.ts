@@ -109,6 +109,7 @@ describe('ListResponseBase Validation Test', () => {
   test('正常系: すべての項目に正しい入力がある場合', async () => {
     const validData = {
       totalCount: 100,
+      totalPages: 10,
       currentPage: 2,
       offset: 10,
       limit: 50,
@@ -121,6 +122,7 @@ describe('ListResponseBase Validation Test', () => {
   test('正常系: 必須項目のみに正しい入力がある場合', async () => {
     const validData = {
       totalCount: 100,
+      totalPages: 10,
       currentPage: 1,
       offset: 0,
       limit: 1,

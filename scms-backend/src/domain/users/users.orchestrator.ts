@@ -5,6 +5,7 @@ import {
 } from 'src/prisma/prisma.type';
 import { UsersCreateRequestDto } from './dto/users-create-request.dto';
 import { UsersService } from '../../service/users/users.service';
+import { randomUUID } from 'crypto';
 
 /**
  * Usersのオーケストレーションクラス
@@ -31,7 +32,7 @@ export class UsersOrchestrator {
 
     // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, bodyを渡す
     const txDateTime = new Date();
-    const userId = 'USER_CREATE_API'; // 認証を前提としないため、ダミーの登録者IDを渡す
+    const userId = randomUUID(); // ユーザーIDを新規に発行
     const response = await this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
         const result = await this.usersService.createWithTx(

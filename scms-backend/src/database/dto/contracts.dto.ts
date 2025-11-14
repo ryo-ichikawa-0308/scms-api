@@ -21,8 +21,8 @@ export class SelectContractsDto {
 
   /** サービス名 */
   @IsOptional()
-  @IsString()
-  @MaxLength(256)
+  @IsString({ message: 'サービス名は文字列で入力してください。' })
+  @MaxLength(256, { message: 'サービス名は256文字以下で入力してください。' })
   serviceName?: string;
 
   @IsOptional()
@@ -55,14 +55,14 @@ export class CreateContractsDto {
   id?: string;
 
   /// ユーザーID
-  @IsUUID('4', { message: 'ユーザーIDは文字列で入力してください。' })
+  @IsUUID('4', { message: 'ユーザーIDはUUIDで入力してください。' })
   @MaxLength(36, { message: 'ユーザーIDは36桁以下で入力してください。' })
   @IsString({ message: 'ユーザーIDは文字列で入力してください。' })
   usersId: string;
 
   /// ユーザー提供サービスID
   @IsUUID('4', {
-    message: 'ユーザー提供サービスIDは文字列で入力してください。',
+    message: 'ユーザー提供サービスIDはUUIDで入力してください。',
   })
   @MaxLength(36, {
     message: 'ユーザー提供サービスIDは36桁以下で入力してください。',
@@ -81,7 +81,7 @@ export class CreateContractsDto {
   registeredAt?: Date;
 
   /// 登録者
-  @IsUUID('4', { message: '登録者は文字列で入力してください。' })
+  @IsUUID('4', { message: '登録者はUUIDで入力してください。' })
   @MaxLength(36, { message: '登録者は36桁以下で入力してください。' })
   @IsString({ message: '登録者は文字列で入力してください。' })
   registeredBy: string;
@@ -93,7 +93,7 @@ export class CreateContractsDto {
 
   /// 更新者
   @IsOptional()
-  @IsUUID('4', { message: '更新者は文字列で入力してください。' })
+  @IsUUID('4', { message: '更新者はUUIDで入力してください。' })
   @MaxLength(36, { message: '更新者は36桁以下で入力してください。' })
   updatedBy?: string;
 

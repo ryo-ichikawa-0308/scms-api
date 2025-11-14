@@ -14,10 +14,9 @@ import {
  */
 export class CreateUsersDto {
   /// ID
-  @IsOptional()
-  @IsUUID('4', { message: 'IDは文字列で入力してください。' })
+  @IsUUID('4', { message: 'IDはUUID入力してください。' })
   @Length(36, 36, { message: 'IDは36桁以下で入力してください。' })
-  id?: string;
+  id: string;
 
   /// ユーザー名
   @MaxLength(256, { message: 'ユーザー名は256桁以下で入力してください。' })
@@ -28,8 +27,8 @@ export class CreateUsersDto {
   @MaxLength(256, { message: 'メールアドレスは256桁以下で入力してください。' })
   @IsEmail(
     {},
-    { message: 'メールアドレスはメールアドレスで入力してください。' },
-  ) // TODO: 形式名: メールアドレス
+    { message: 'メールアドレスはメールアドレス形式で入力してください。' },
+  )
   @IsString({ message: 'メールアドレスは文字列で入力してください。' })
   email: string;
 
@@ -50,7 +49,7 @@ export class CreateUsersDto {
   registeredAt?: Date;
 
   /// 登録者
-  @IsUUID('4', { message: '登録者は文字列で入力してください。' })
+  @IsUUID('4', { message: '登録者はUUIDで入力してください。' })
   @Length(36, 36, { message: '登録者は36桁以下で入力してください。' })
   @IsString({ message: '登録者は文字列で入力してください。' })
   registeredBy: string;
@@ -62,7 +61,7 @@ export class CreateUsersDto {
 
   /// 更新者
   @IsOptional()
-  @IsUUID('4', { message: '更新者は文字列で入力してください。' })
+  @IsUUID('4', { message: '更新者はUUIDで入力してください。' })
   @Length(36, 36, { message: '更新者は36桁以下で入力してください。' })
   updatedBy?: string;
 

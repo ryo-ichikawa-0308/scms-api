@@ -34,6 +34,7 @@ export class UsersService {
       body.password,
     );
     const createDto: CreateUsersDto = {
+      id: userId,
       name: body.name,
       email: body.email,
       password: hashedPassword,
