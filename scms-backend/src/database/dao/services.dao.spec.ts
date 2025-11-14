@@ -26,6 +26,7 @@ const mockPrismaService = {
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    findFirst: jest.fn(),
   },
 };
 
@@ -77,6 +78,48 @@ describe('ServicesDaoのテスト', () => {
 
     dao = module.get<ServicesDao>(ServicesDao);
     jest.clearAllMocks();
+  });
+  describe('selectServicesByNameのテスト', () => {
+    const NAME_TO_SEARCH = mockService.name;
+
+    describe('正常系', () => {
+      test('サービス名でレコードが取得できる場合', async () => {
+        jest
+          .spyOn(mockServicesModel, 'findFirst')
+          .mockResolvedValueOnce(mockService);
+
+        const result = await dao.selectServicesByName(NAME_TO_SEARCH);
+
+        expect(result).toEqual(mockService);
+        // PrismaのfindFirstが正しいwhere句で呼ばれたことを確認
+        expect(mockServicesModel.findFirst).toHaveBeenCalledWith({
+          where: {
+            name: NAME_TO_SEARCH,
+            isDeleted: false,
+          },
+        });
+      });
+
+      test('サービス名に一致するレコードが見つからない場合、nullが返る', async () => {
+        jest.spyOn(mockServicesModel, 'findFirst').mockResolvedValueOnce(null);
+
+        const result = await dao.selectServicesByName('Non-Existent Service');
+
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('異常系', () => {
+      test('DB接続エラーが発生した場合、InternalServerErrorExceptionがスローされる', async () => {
+        jest
+          .spyOn(mockServicesModel, 'findFirst')
+          .mockRejectedValueOnce(new Error('DB connection failed'));
+
+        await expect(dao.selectServicesByName(NAME_TO_SEARCH)).rejects.toThrow(
+          InternalServerErrorException,
+        );
+      });
+    });
   });
 
   describe('createServicesのテスト', () => {
