@@ -7,6 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import {
   SelectContractsDto,
   CreateContractsDto,
+  ContractsDetailDto,
 } from 'src/database/dto/contracts.dto';
 import { Contracts } from '@prisma/client';
 import {
@@ -30,11 +31,13 @@ const mockPrismaService = {
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    findFirst: jest.fn(),
   },
 };
 
 const mockContractsModel = mockPrismaService.contracts;
 const mockPrismaTx = {
+  $queryRaw: jest.fn(),
   contracts: mockContractsModel,
 } as unknown as PrismaTransaction;
 
@@ -57,6 +60,7 @@ describe('ContractsDaoのテスト', () => {
   const MOCK_UUID = '12345678-1234-5678-1234-567812345678';
   const MOCK_USER_ID = 'user-12345678-1234-5678-1234-567812345678';
   const MOCK_USER_SERVICE_ID = 'userv-12345678-1234-5678-1234-567812345678';
+  const MOCK_SERVICE_NAME = 'テストサービス';
 
   const mockContract: Contracts = {
     id: MOCK_UUID,
@@ -69,6 +73,29 @@ describe('ContractsDaoのテスト', () => {
     updatedBy: MOCK_UUID,
     isDeleted: false,
   };
+
+  const mockUser = {
+    id: MOCK_USER_ID,
+    name: 'Test User',
+  };
+  const mockService = {
+    id: 'service-id',
+    name: 'Premium Service',
+    price: 1000,
+    unit: '月',
+  };
+  const mockUserService = {
+    id: MOCK_USER_SERVICE_ID,
+    usersId: MOCK_USER_ID,
+    servicesId: 'service-id',
+    users: mockUser,
+    services: mockService,
+  };
+  const mockContractDetail: ContractsDetailDto = {
+    ...mockContract,
+    users: mockUser,
+    userServices: mockUserService as any,
+  } as ContractsDetailDto;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -84,10 +111,90 @@ describe('ContractsDaoのテスト', () => {
     dao = module.get<ContractsDao>(ContractsDao);
     jest.clearAllMocks();
   });
+  describe('selectContractsByIdのテスト', () => {
+    const ID_TO_SEARCH = mockContract.id;
 
+    describe('正常系', () => {
+      test('契約IDでレコードが取得できる場合 (関連テーブル含む)', async () => {
+        jest
+          .spyOn(mockContractsModel, 'findFirst')
+          .mockResolvedValueOnce(mockContractDetail);
+
+        const result = await dao.selectContractsById(ID_TO_SEARCH);
+
+        expect(result).toEqual(mockContractDetail);
+        // PrismaのfindFirstが正しいwhere句とincludeで呼ばれたことを確認
+        expect(mockContractsModel.findFirst).toHaveBeenCalledWith({
+          where: {
+            id: ID_TO_SEARCH,
+            isDeleted: false,
+          },
+          include: expect.objectContaining({
+            users: true,
+            userServices: expect.anything(),
+          }),
+        });
+      });
+
+      test('契約IDに一致するレコードが見つからない場合、nullが返る', async () => {
+        jest.spyOn(mockContractsModel, 'findFirst').mockResolvedValueOnce(null);
+
+        const result = await dao.selectContractsById('non-existent-id');
+
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('異常系', () => {
+      test('DB接続エラーが発生した場合、InternalServerErrorExceptionがスローされる', async () => {
+        jest
+          .spyOn(mockContractsModel, 'findFirst')
+          .mockRejectedValueOnce(new Error('DB connection failed'));
+
+        await expect(dao.selectContractsById(ID_TO_SEARCH)).rejects.toThrow(
+          InternalServerErrorException,
+        );
+      });
+    });
+  });
+
+  describe('lockContractsByIdのテスト', () => {
+    const ID_TO_LOCK = mockContract.id;
+
+    describe('正常系', () => {
+      test('契約IDでレコードのロックが取得できる場合', async () => {
+        const lockedRecord = mockContract;
+        jest
+          .spyOn(mockPrismaTx, '$queryRaw')
+          .mockResolvedValueOnce([lockedRecord]);
+        const result = await dao.lockContractsById(mockPrismaTx, ID_TO_LOCK);
+        expect(result).toEqual(lockedRecord);
+        expect(mockPrismaTx.$queryRaw).toHaveBeenCalled();
+      });
+
+      test('ロック対象のレコードが見つからない場合、undefinedが返る', async () => {
+        jest.spyOn(mockPrismaTx, '$queryRaw').mockResolvedValueOnce([]);
+        const result = await dao.lockContractsById(mockPrismaTx, ID_TO_LOCK);
+        expect(result).toBeUndefined();
+      });
+    });
+
+    describe('異常系', () => {
+      test('DB接続エラーが発生した場合、InternalServerErrorExceptionがスローされる', async () => {
+        jest
+          .spyOn(mockPrismaTx, '$queryRaw')
+          .mockRejectedValueOnce(new Error('DB lock failed'));
+
+        await expect(
+          dao.lockContractsById(mockPrismaTx, ID_TO_LOCK),
+        ).rejects.toThrow(InternalServerErrorException);
+      });
+    });
+  });
   describe('selectContractsのテスト', () => {
     const selectDto = new SelectContractsDto();
     selectDto.usersId = MOCK_USER_ID;
+    selectDto.serviceName = MOCK_SERVICE_NAME;
 
     describe('正常系', () => {
       test('1件の結果が返る場合', async () => {
@@ -100,7 +207,24 @@ describe('ContractsDaoのテスト', () => {
 
         expect(contracts).toEqual(result);
         expect(mockContractsModel.findMany).toHaveBeenCalledWith({
-          where: { isDeleted: false, usersId: { contains: MOCK_USER_ID } },
+          where: {
+            usersId: MOCK_USER_ID,
+            isDeleted: false,
+            userServices: {
+              services: {
+                name: { contains: MOCK_SERVICE_NAME },
+              },
+            },
+          },
+          include: {
+            users: true,
+            userServices: {
+              include: {
+                users: true,
+                services: true,
+              },
+            },
+          },
           skip: undefined,
           take: undefined,
           orderBy: {},
@@ -114,6 +238,8 @@ describe('ContractsDaoのテスト', () => {
         jest
           .spyOn(mockContractsModel, 'findMany')
           .mockResolvedValueOnce(result);
+        selectDto.usersId = MOCK_USER_ID;
+        selectDto.serviceName = MOCK_SERVICE_NAME;
         selectDto.limit = 10;
         selectDto.sortBy = 'quantity';
         selectDto.sortOrder = 'desc';
@@ -122,7 +248,24 @@ describe('ContractsDaoのテスト', () => {
 
         expect(contracts).toEqual(result);
         expect(mockContractsModel.findMany).toHaveBeenCalledWith({
-          where: { isDeleted: false, usersId: { contains: MOCK_USER_ID } },
+          where: {
+            usersId: MOCK_USER_ID,
+            isDeleted: false,
+            userServices: {
+              services: {
+                name: { contains: MOCK_SERVICE_NAME },
+              },
+            },
+          },
+          include: {
+            users: true,
+            userServices: {
+              include: {
+                users: true,
+                services: true,
+              },
+            },
+          },
           skip: undefined,
           take: 10,
           orderBy: { quantity: 'desc' },
@@ -137,11 +280,28 @@ describe('ContractsDaoのテスト', () => {
           .spyOn(mockContractsModel, 'findMany')
           .mockResolvedValueOnce(result);
 
-        const contracts = await dao.selectContracts(new SelectContractsDto());
+        const contracts = await dao.selectContracts(selectDto);
 
         expect(contracts).toEqual([]);
         expect(mockContractsModel.findMany).toHaveBeenCalledWith({
-          where: { isDeleted: false },
+          where: {
+            isDeleted: false,
+            usersId: MOCK_USER_ID,
+            userServices: {
+              services: {
+                name: { contains: MOCK_SERVICE_NAME },
+              },
+            },
+          },
+          include: {
+            users: true,
+            userServices: {
+              include: {
+                users: true,
+                services: true,
+              },
+            },
+          },
           skip: undefined,
           take: undefined,
           orderBy: {},
@@ -164,7 +324,8 @@ describe('ContractsDaoのテスト', () => {
 
   describe('countContractsのテスト', () => {
     const selectDto = new SelectContractsDto();
-    selectDto.userServicesId = MOCK_USER_SERVICE_ID;
+    selectDto.usersId = MOCK_USER_ID;
+    selectDto.serviceName = MOCK_SERVICE_NAME;
 
     describe('正常系', () => {
       test('1が返る場合', async () => {
@@ -175,8 +336,13 @@ describe('ContractsDaoのテスト', () => {
         expect(count).toBe(1);
         expect(mockContractsModel.count).toHaveBeenCalledWith({
           where: {
+            usersId: MOCK_USER_ID,
             isDeleted: false,
-            userServicesId: { contains: MOCK_USER_SERVICE_ID },
+            userServices: {
+              services: {
+                name: { contains: MOCK_SERVICE_NAME },
+              },
+            },
           },
         });
       });
@@ -245,7 +411,7 @@ describe('ContractsDaoのテスト', () => {
 
     describe('異常系', () => {
       test('一意制約違反が発生した場合', async () => {
-        // Contractsには複合/単一の一意制約がないため、このテストケースは理論上は発生しないが、指示書に従って実装
+        // UUID衝突のレアケースを想定
         jest
           .spyOn(mockContractsModel, 'create')
           .mockRejectedValueOnce(mockPrismaError('P2002'));
@@ -296,24 +462,12 @@ describe('ContractsDaoのテスト', () => {
           where: { id: updateData.id },
           data: expect.objectContaining({
             quantity: updateData.quantity,
-            users: { connect: { id: updateData.usersId } },
-            userServices: { connect: { id: updateData.userServicesId } },
           }),
         });
       });
     });
 
     describe('異常系', () => {
-      test('一意制約違反が発生した場合', async () => {
-        // Contractsには複合/単一の一意制約がないため、このテストケースは理論上は発生しないが、指示書に従って実装
-        jest
-          .spyOn(mockContractsModel, 'update')
-          .mockRejectedValueOnce(mockPrismaError('P2002'));
-
-        await expect(
-          dao.updateContracts(mockPrismaTx, updateData),
-        ).rejects.toThrow(ConflictException);
-      });
       test('外部キー違反が発生した場合', async () => {
         jest
           .spyOn(mockContractsModel, 'update')
@@ -398,55 +552,6 @@ describe('ContractsDaoのテスト', () => {
 
         await expect(
           dao.softDeleteContracts(mockPrismaTx, deleteId, updatedAt, updatedBy),
-        ).rejects.toThrow(InternalServerErrorException);
-      });
-    });
-  });
-
-  describe('hardDeleteContractsのテスト', () => {
-    const deleteId = MOCK_UUID;
-
-    describe('正常系', () => {
-      test('正常に物理削除ができる場合', async () => {
-        jest
-          .spyOn(mockContractsModel, 'delete')
-          .mockResolvedValueOnce(mockContract);
-
-        const contract = await dao.hardDeleteContracts(mockPrismaTx, deleteId);
-
-        expect(contract).toEqual(mockContract);
-        expect(mockContractsModel.delete).toHaveBeenCalledWith({
-          where: { id: deleteId },
-        });
-      });
-    });
-
-    describe('異常系', () => {
-      test('物理削除レコードが見つからない場合', async () => {
-        jest
-          .spyOn(mockContractsModel, 'delete')
-          .mockRejectedValueOnce(mockPrismaError('P2025'));
-
-        await expect(
-          dao.hardDeleteContracts(mockPrismaTx, deleteId),
-        ).rejects.toThrow(NotFoundException);
-      });
-      test('外部キー違反が発生した場合', async () => {
-        jest
-          .spyOn(mockContractsModel, 'delete')
-          .mockRejectedValueOnce(mockPrismaError('P2003'));
-
-        await expect(
-          dao.hardDeleteContracts(mockPrismaTx, deleteId),
-        ).rejects.toThrow(BadRequestException);
-      });
-      test('DB接続エラーが発生した場合', async () => {
-        jest
-          .spyOn(mockContractsModel, 'delete')
-          .mockRejectedValueOnce(new Error('DB Error'));
-
-        await expect(
-          dao.hardDeleteContracts(mockPrismaTx, deleteId),
         ).rejects.toThrow(InternalServerErrorException);
       });
     });

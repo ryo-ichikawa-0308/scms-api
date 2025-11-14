@@ -63,17 +63,19 @@ export class ContractsDao {
     prismaTx: PrismaTransaction,
     id: string,
   ): Promise<Contracts | null> {
-    const lockedRecords: Contracts[] = await prismaTx.$queryRaw<Contracts[]>`
+    try {
+      const lockedRecords: Contracts[] = await prismaTx.$queryRaw<Contracts[]>`
       SELECT id, user_services_id as userServicesId, quantity FROM contracts 
       WHERE id = ${id} AND is_deleted = false
       FOR UPDATE
     `;
-    if (lockedRecords.length === 0) {
-      throw new NotFoundException(
-        `ロック対象の契約レコード (ID: ${id}) が見つかりません。`,
+      return lockedRecords[0];
+    } catch (e) {
+      throw new InternalServerErrorException(
+        e,
+        '契約テーブルのロック中に予期せぬエラーが発生しました',
       );
     }
-    return lockedRecords[0];
   }
   /**
    * 契約を取得する
@@ -85,6 +87,7 @@ export class ContractsDao {
       const query: Prisma.ContractsFindManyArgs = {
         where: {
           isDeleted: false,
+          usersId: dto.usersId,
           userServices: {
             services: {
               name: { contains: dto.serviceName },
@@ -101,15 +104,6 @@ export class ContractsDao {
           },
         },
       };
-
-      if (dto.id && query.where) query.where.id = { contains: dto.id };
-      if (dto.usersId && query.where)
-        query.where.usersId = { contains: dto.usersId };
-      if (dto.userServicesId && query.where)
-        query.where.userServicesId = { contains: dto.userServicesId };
-      if (dto.quantity !== undefined && query.where)
-        query.where.quantity = dto.quantity;
-
       const orderBy: Prisma.ContractsOrderByWithRelationInput = {};
       if (dto.sortBy) {
         const sortOrder = dto.sortOrder || 'asc';
@@ -140,6 +134,7 @@ export class ContractsDao {
       const query: Prisma.ContractsCountArgs = {
         where: {
           isDeleted: false,
+          usersId: dto.usersId,
           userServices: {
             services: {
               name: { contains: dto.serviceName },
@@ -147,15 +142,6 @@ export class ContractsDao {
           },
         },
       };
-
-      if (dto.id && query.where) query.where.id = { contains: dto.id };
-      if (dto.usersId && query.where)
-        query.where.usersId = { contains: dto.usersId };
-      if (dto.userServicesId && query.where)
-        query.where.userServicesId = { contains: dto.userServicesId };
-      if (dto.quantity !== undefined && query.where)
-        query.where.quantity = dto.quantity;
-
       const count = await this.prisma.contracts.count(query);
       return count;
     } catch (e) {
@@ -285,40 +271,6 @@ export class ContractsDao {
       }
       throw new InternalServerErrorException(
         '契約の論理削除中に予期せぬエラーが発生しました。',
-      );
-    }
-  }
-
-  /**
-   * 契約を物理削除する
-   * @param prismaTx トランザクション
-   * @param id 契約のID(主キー)
-   * @returns 物理削除したレコード
-   */
-  async hardDeleteContracts(
-    prismaTx: PrismaTransaction,
-    id: string,
-  ): Promise<Contracts> {
-    try {
-      return await prismaTx.contracts.delete({
-        where: { id },
-      });
-    } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError) {
-        if (e.code === 'P2025') {
-          // レコードが見つからない
-          throw new NotFoundException('物理削除対象の契約が見つかりません。');
-        }
-        // Contractsは子テーブルを持たないため、通常はP2003は発生しないが、念のため
-        if (e.code === 'P2003') {
-          // 外部キー違反
-          throw new BadRequestException(
-            '外部キー制約に違反するため、契約の物理削除ができません。',
-          );
-        }
-      }
-      throw new InternalServerErrorException(
-        '契約の物理削除中に予期せぬエラーが発生しました。',
       );
     }
   }

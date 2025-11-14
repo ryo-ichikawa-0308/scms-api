@@ -14,32 +14,16 @@ import { Contracts, Services, UserServices, Users } from '@prisma/client';
  * 契約の標準検索用DTO
  */
 export class SelectContractsDto {
-  /// ID
-  @IsOptional()
-  @IsString({ message: 'IDは文字列で入力してください。' })
-  id?: string;
-
   /// ユーザーID
   @IsOptional()
   @IsString({ message: 'ユーザーIDは文字列で入力してください。' })
   usersId?: string;
-
-  /// ユーザー提供サービスID
-  @IsOptional()
-  @IsString({ message: 'ユーザー提供サービスIDは文字列で入力してください。' })
-  userServicesId?: string;
 
   /** サービス名 */
   @IsOptional()
   @IsString()
   @MaxLength(256)
   serviceName?: string;
-
-  /// 契約数
-  @IsOptional()
-  @IsInt({ message: '契約数は数値で入力してください。' })
-  @Type(() => Number)
-  quantity?: number;
 
   @IsOptional()
   @IsInt({ message: 'offsetは数値で入力してください。' })
