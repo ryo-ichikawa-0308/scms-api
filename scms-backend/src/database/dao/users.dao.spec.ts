@@ -162,7 +162,6 @@ describe('UsersDaoのテスト', () => {
   describe('lockUsersByIdのテスト', () => {
     describe('正常系', () => {
       test('IDでユーザーレコードがロックできる場合', async () => {
-        // $queryRawはタグ付きテンプレートリテラルで呼び出されるため、返り値を配列でモック
         const lockedRecord: Users[] = [mockUser];
         jest
           .spyOn(mockPrismaService, '$queryRaw')
@@ -173,8 +172,7 @@ describe('UsersDaoのテスト', () => {
         expect(user).toEqual(mockUser);
         expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
       });
-      test('ロック対象のユーザーレコードが見つからない場合', async () => {
-        // ロック対象が見つからない場合は空配列を返す
+      test('ロック対象のユーザーレコードが見つからない場合undefinedが返ること', async () => {
         jest.spyOn(mockPrismaService, '$queryRaw').mockResolvedValueOnce([]);
         const user = await dao.lockUsersById(mockPrismaTx, MOCK_UUID);
         expect(user).toBeUndefined();
