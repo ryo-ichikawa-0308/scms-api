@@ -23,7 +23,7 @@ graph TD
     DB-JSON_PROMPT --> DB_JSON@{ shape: processes, label: "DB設計書JSON" }
     DB_JSON --> PRISMA_PROMPT{{Prismaコード<br>生成プロンプト}}
     PRISMA_PROMPT --> PRISMA(Prismaコード)
-    PRISMA --> DAO_PROMPT{{DAO生成プロンプト}}
+    PRISMA --> DAO_PROMPT{{DAOコード<br>生成プロンプト}}
     DAO_PROMPT --> DAO(DAOコード)
     PRISMA --> API-JSON_PROMPT{{API設計書<BR>JSON変換プロンプト}}
     API_DOC@{ shape: docs, label: "API設計書" } --> API-JSON_PROMPT
@@ -51,7 +51,7 @@ AIの責務は、API設計とDB設計に従ってDAOコード・APIスケルト�
 - 過剰なコメントの削除
 - 空もしくはサロゲートキーのみといった、冗長なDTOの整理
 - コントローラー層・サービス層間の呼び出し関係整理
-- クラス名は異なるが、本質的に同じであるオブジェクトの統合
+- リスト取得の要素(明細)と1件取得の明細など、クラス名は異なるが、本質的に同じであるオブジェクトの統合
 - AIで自動生成したDAOの基本メソッドの、エンドポイント仕様への適合(関連テーブルの追加、不要なメソッドの削除、DTO項目の調整等)
 - モジュールクラスの整理
 - 認証周りのような共通モジュール・サービスの実装
