@@ -27,4 +27,4 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   providers: [AccessTokenStrategy],
   exports: [JwtModule, AccessTokenStrategy],
 })
-export class AccessTokenServiceModule {}
+export class AccessTokenStrategyModule {}

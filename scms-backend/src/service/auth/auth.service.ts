@@ -8,9 +8,9 @@ import { UsersDao } from 'src/database/dao/users.dao';
 
 import * as bcrypt from 'bcrypt';
 import { Users } from '@prisma/client';
-import { RefreshTokenStrategy } from './refresh-token.strategy';
+import { RefreshTokenStrategy } from './strategy/refresh-token.strategy';
 import { AuthLoginResponseDto } from 'src/domain/auth/dto/auth-login-response.dto';
-import { AccessTokenStrategy } from './access-token.strategy';
+import { AccessTokenStrategy } from './strategy/access-token.strategy';
 import { AuthRefreshResponseDto } from 'src/domain/auth/dto/auth-refresh-response.dto';
 import { ConfigService } from '@nestjs/config';
 const SALT_ROUNDS = 10;

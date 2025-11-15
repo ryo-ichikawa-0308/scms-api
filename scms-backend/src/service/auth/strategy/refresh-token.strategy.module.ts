@@ -27,4 +27,4 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   providers: [RefreshTokenStrategy],
   exports: [JwtModule, RefreshTokenStrategy],
 })
-export class RefreshTokenServiceModule {}
+export class RefreshTokenStrategyModule {}

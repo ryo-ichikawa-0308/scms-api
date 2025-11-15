@@ -186,7 +186,6 @@ export class UserServicesDao {
   ): Promise<UserServices> {
     try {
       const data: Prisma.UserServicesCreateInput = {
-        id: dto.id,
         stock: dto.stock,
         registeredAt: dto.registeredAt,
         registeredBy: dto.registeredBy,

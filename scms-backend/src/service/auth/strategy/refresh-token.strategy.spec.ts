@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { RefreshTokenStrategy } from './refresh-token.strategy';
 import { UsersDao } from 'src/database/dao/users.dao';
-import { JwtPayload } from './jwt-payload';
+import { JwtPayload } from '../../../types/jwt-payload';
 import { Users } from '@prisma/client';
 
 // --- モックデータ ---

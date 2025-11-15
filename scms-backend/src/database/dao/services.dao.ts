@@ -47,7 +47,6 @@ export class ServicesDao {
   ): Promise<Services> {
     try {
       const data: Prisma.ServicesCreateInput = {
-        id: dto.id,
         name: dto.name,
         description: dto.description,
         price: dto.price,

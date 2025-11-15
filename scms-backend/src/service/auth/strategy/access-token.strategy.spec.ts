@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AccessTokenStrategy } from './access-token.strategy';
 import { UsersDao } from 'src/database/dao/users.dao';
-import { JwtPayload } from './jwt-payload';
+import { JwtPayload } from '../../../types/jwt-payload';
 
 // --- モックデータ ---
 const MOCK_USER_ID = 'test-user-id';

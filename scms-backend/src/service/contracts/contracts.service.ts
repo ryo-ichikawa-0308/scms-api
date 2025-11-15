@@ -89,14 +89,14 @@ export class ContractsService {
     const contract = await this.contractsDao.selectContractsById(id);
     if (!contract) throw new NotFoundException('該当データが見つかりません');
 
-    const response: ContractsDetailResponseDto = {
+    const response = new ContractsDetailResponseDto({
       id: contract.id,
       usersId: contract.usersId,
       userServicesId: contract.userServicesId,
       quantity: contract.quantity,
       name: contract.userServices.services.name,
       unit: contract.userServices.services.unit,
-    };
+    });
 
     return response;
   }
