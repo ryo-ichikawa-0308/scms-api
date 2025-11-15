@@ -9,16 +9,15 @@ import { PrismaTransaction } from 'src/prisma/prisma.type';
  */
 @Injectable()
 export class ServicesService {
-  constructor(private readonly servicesDao: ServicesDao) {} //  // TODO: 依存するDAOに置き換える
+  constructor(private readonly servicesDao: ServicesDao) {}
 
-  // 登録・更新系メソッドのテンプレート
   /**
    * サービス登録
    * @param prismaTx トランザクション
    * @param userId トランザクション実行者のID
    * @param txDateTime トランザクション開始日時
    * @param body ServicesCreateRequestDto
-   * @returns ServiceModel
+   * @returns 登録したサービスのID
    */
   async createWithTx(
     prismaTx: PrismaTransaction,

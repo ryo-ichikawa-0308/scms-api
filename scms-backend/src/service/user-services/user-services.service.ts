@@ -90,7 +90,7 @@ export class UserServicesService {
     }
 
     // 2. 検索結果をResponseDtoへ詰め替え (TableDto -> ResponseDto)
-    return {
+    return new UserServicesDetailResponseDto({
       id: userService.id,
       usersId: userService.usersId,
       servicesId: userService.servicesId,
@@ -98,7 +98,7 @@ export class UserServicesService {
       description: userService.services.description,
       price: userService.services.price,
       unit: userService.services.unit,
-    } as UserServicesDetailResponseDto;
+    });
   }
 
   /**
