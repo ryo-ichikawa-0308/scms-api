@@ -34,7 +34,7 @@ export class UserServicesOrchestrator {
         body.serviceId,
       );
     if (isUserServiceExists) {
-      throw new ConflictException('このユーザー提供サービスは登録できません');
+      throw new ConflictException('このサービスは登録できません');
     }
 
     // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, 各種dtoを渡す
