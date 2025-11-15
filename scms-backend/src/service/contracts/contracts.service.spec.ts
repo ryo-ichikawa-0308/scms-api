@@ -123,7 +123,7 @@ describe('ContractsService (Service) Test', () => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
+  it('サービスクラスが定義されていること', () => {
     expect(service).toBeDefined();
   });
 

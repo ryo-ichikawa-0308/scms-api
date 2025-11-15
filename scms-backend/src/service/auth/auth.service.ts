@@ -27,7 +27,6 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  // ログイン (POST/login) - トランザクション対応メソッド
   /**
    * ログイン処理 (トランザクション内実行)
    * @param prismaTx トランザクション
@@ -133,7 +132,7 @@ export class AuthService {
     userName: string,
   ): Promise<AuthRefreshResponseDto> {
     // 1. DAOのtx対応メソッドを呼び出し、DB更新を実行
-    const generatedToken = this.refreshTokenStrategy.generateRefreshToken(
+    const refreshToken = this.refreshTokenStrategy.generateRefreshToken(
       userId,
       userName,
     );
@@ -143,7 +142,7 @@ export class AuthService {
     }
     const updateDto: Users = {
       ...user,
-      token: generatedToken,
+      token: refreshToken,
       updatedAt: txDateTime,
       updatedBy: userId,
     };
@@ -159,10 +158,14 @@ export class AuthService {
     const refreshDto = new AuthRefreshResponseDto({
       token: {
         accessToken: accessToken,
-        expiresIn: 100,
+        expiresIn: this.configService.getOrThrow<number>(
+          'ACCESS_TOKEN_EXPIRES',
+        ),
       },
-      refreshToken: generatedToken,
-      refreshTokenExpiresIn: 1,
+      refreshToken: refreshToken,
+      refreshTokenExpiresIn: this.configService.getOrThrow<number>(
+        'REFRESH_TOKEN_EXPIRES',
+      ),
     });
     return refreshDto;
   }
