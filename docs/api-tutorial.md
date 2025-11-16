@@ -62,7 +62,14 @@ API実装コードは、エンタープライズアーキテクチャに基づ�
 
 #### 3.2.2 レスポンス
 
-登録APIは、登録したリソースのサロゲートキー(UUID)をクライアントに返す(201 CREATED)。更新・削除APIは何も返さない(204 NO CONTENT)。
+原則として、以下のレスポンスを返す。
+
+- **登録API:** 登録したリソースのサロゲートキー(UUID)をクライアントに返す(201 CREATED)。
+- **更新・削除API:** 何も返さない(204 NO CONTENT)。
+
+但し、要件に応じて、適切なレスポンスDTOを定義することも可とする。
+
+(補足) サンプルAPIでは、認証系のAPIにおいて、ユーザーテーブルのトークン情報更新とJWTトークン返却を行っている。更新系APIにレスポンスDTOを設定するのはこのような特殊な場合に限定するべきで、登録したデータを次ページで表示するといった要件では、戻り値のUUIDをもとに、BFF側で改めて1件取得APIを実行する設計を推奨する。
 
 ### 3.3 更新系API オーケストレーションクラス
 
@@ -83,7 +90,9 @@ API実装コードは、エンタープライズアーキテクチャに基づ�
 
 - **責務:** DAOの実行、DAOから受け取ったデータのDTO詰め替え、データが存在しない場合の処理(0件返却もしくはNotFoundException)。
 
-- **命名規則:** 配列取得のメソッドは`list`、1件取得のメソッドは`detail`がスケルトンコードとして提供されている。それ以外の取得メソッドは要件に応じて作成する。
+- **命名規則:** 配列取得のメソッドは`list`、1件取得のメソッドは`detail`がスケルトンコードとして提供されている。それ以外の取得系メソッドは要件に応じて作成する。
+
+- **ページング情報作成:** 配列取得のメソッドでは、データ検索と同じ条件で件数取得を行い、ページング情報を作成する。サンプルAPIでは、ページング情報作成は共通処理として提供されている。
 
 - **データ変換:** database層のDTO(Prismaモデル型)を、domain層のレスポンスDTOに変換する責務を持つ。変換処理はサービスメソッド内に記述する。
 
@@ -104,7 +113,7 @@ API実装コードは、エンタープライズアーキテクチャに基づ�
   - **登録メソッド:** 登録したテーブルのサロゲートキーを返す。
   - **更新メソッド:** 何も返さない(`Promise<void>`)。
 
-- **ロック処理:** 更新・削除を行うリソースに対し、必ず関連DAOのlockTableNameByIdを呼び出してロックを取得してから処理を実行する。
+- **ロック処理:** 更新・削除を行うリソースに対し、必ず関連DAOの`lockTableNameById`を呼び出してロックを取得してから処理を実行する。
 
 - **監査項目の登録:** 下記の監査項目を登録する。
   - **登録処理:** 登録日時と登録者にオーケストレーションクラスから受け取ったトランザクション開始日時とユーザーIDを、削除フラグに`false`を設定する。
@@ -221,8 +230,8 @@ createTableName(prismaTx: PrismaTransaction, dto: CreateTableNameDto): Promise<T
 - createTableNameは、データの登録そのものを担当し、登録における業務的な整合性は呼び出し元のサービスクラスが保証するため、DAOは感知しない。
 - createTableNameにおいて、監査フィールドの正当性は呼び出し元のサービスクラスが保証するため、DAOは感知しない。
 - createTableNameは、下記のPrisma例外を処理する。
-  - **一意制約違反** ConflictExceptionにラップして例外送出する。
-  - **外部キー違反** BadRequestExceptionにラップして例外送出する。
+  - **一意制約違反(P2002)** ConflictExceptionにラップして例外送出する。
+  - **外部キー違反(P2003)** BadRequestExceptionにラップして例外送出する。
   - **接続エラーなど、予期せぬ例外** InternalServerErrorExceptionにラップして例外送出する。
 
 ### 5.2 データ更新・削除メソッド(`update` `delete`)
@@ -248,8 +257,8 @@ updateTableName(prismaTx: PrismaTransaction, updateData: TableName): Promise<Tab
 - updateTableNameは、データの更新そのものを担当し、更新における業務的な整合性は呼び出し元のサービスクラスが保証するため、DAOは感知しない。
 - updateTableNameにおいて、監査フィールドの正当性は呼び出し元のサービスクラスが保証するため、DAOは感知しない。
 - updateTableNameは、下記のPrisma例外を処理する。
-  - **一意制約違反** ConflictExceptionにラップして例外送出する。
-  - **外部キー違反** BadRequestExceptionにラップして例外送出する。
+  - **一意制約違反(P2002)** ConflictExceptionにラップして例外送出する。
+  - **外部キー違反(P2003)** BadRequestExceptionにラップして例外送出する。
   - **更新対象のレコードが見つからない** NotFoundExceptionにラップして例外送出する。
   - **接続エラーなど、予期せぬ例外** InternalServerErrorExceptionにラップして例外送出する。
 
@@ -287,7 +296,7 @@ hardDeleteTableName(prismaTx: PrismaTransaction, id: string): Promise<TableName>
 
 - hardDeleteTableNameは、データの物理削除そのものを担当し、物理削除における業務的な整合性は呼び出し元のサービスクラスが保証するため、DAOは感知しない。
 - hardDeleteTableNameは、下記のPrisma例外を処理する。
-  - **外部キー違反** BadRequestExceptionにラップして例外送出する。
+  - **外部キー違反(P2003)** BadRequestExceptionにラップして例外送出する。
   - **物理削除対象のレコードが見つからない** NotFoundExceptionにラップして例外送出する。
   - **接続エラーなど、予期せぬ例外** InternalServerErrorExceptionにラップして例外送出する。
 
