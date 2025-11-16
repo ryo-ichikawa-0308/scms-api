@@ -1,45 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersDao } from 'src/database/dao/users.dao';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SelectUsersDto, CreateUsersDto } from 'src/database/dto/users.dto';
-import { PrismaTransaction } from 'src/prisma/prisma.service';
+import { CreateUsersDto } from 'src/database/dto/users.dto';
+import { Users } from '@prisma/client';
 import {
   InternalServerErrorException,
-  ConflictException,
   NotFoundException,
+  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { Users } from '@prisma/client';
-
-// ユーザー情報のモック
-const mockUsers: Users[] = [
-  {
-    id: 'uuid-1',
-    name: 'Active User 1',
-    email: 'user1@example.com',
-    password: 'hash1',
-    registeredAt: new Date(),
-    registeredBy: 'system',
-    updatedAt: null,
-    updatedBy: null,
-    isDeleted: false,
-  },
-  {
-    id: 'uuid-2',
-    name: 'Deleted User',
-    email: 'user2@example.com',
-    password: 'hash2',
-    registeredAt: new Date(),
-    registeredBy: 'system',
-    updatedAt: null,
-    updatedBy: null,
-    isDeleted: true,
-  },
-];
+import { PrismaTransaction } from 'src/prisma/prisma.type';
 
 // Prisma関連のモック
 const mockPrismaService = {
@@ -48,21 +21,26 @@ const mockPrismaService = {
   $on: jest.fn(),
   $use: jest.fn(),
   $transaction: jest.fn(),
+  $queryRaw: jest.fn(),
   users: {
     findMany: jest.fn(),
     count: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    findFirst: jest.fn(),
   },
 };
 
-const mockUsersTxModel = mockPrismaService.users;
+const mockUsersModel = mockPrismaService.users;
 const mockPrismaTx = {
-  users: mockUsersTxModel,
+  users: mockUsersModel,
+  $queryRaw: mockPrismaService.$queryRaw,
 } as unknown as PrismaTransaction;
 
-const { PrismaClientKnownRequestError } = jest.requireActual('@prisma/client');
+const { PrismaClientKnownRequestError } = jest.requireActual(
+  '@prisma/client/runtime/library',
+);
 const mockPrismaError = (code: string) => {
   return new PrismaClientKnownRequestError(`Mock error for code ${code}`, {
     code: code,
@@ -75,7 +53,20 @@ const mockPrismaError = (code: string) => {
 
 describe('UsersDaoのテスト', () => {
   let dao: UsersDao;
-  let prismaService: typeof mockPrismaService;
+
+  const MOCK_UUID = '12345678-1234-5678-1234-567812345678';
+  const mockUser: Users = {
+    id: MOCK_UUID,
+    name: 'Test User',
+    email: 'test@example.com',
+    password: 'hashedpassword',
+    token: 'token123',
+    registeredAt: new Date(),
+    registeredBy: MOCK_UUID,
+    updatedAt: new Date(),
+    updatedBy: MOCK_UUID,
+    isDeleted: false,
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -89,291 +80,237 @@ describe('UsersDaoのテスト', () => {
     }).compile();
 
     dao = module.get<UsersDao>(UsersDao);
-    prismaService = module.get(PrismaService);
-
     jest.clearAllMocks();
   });
 
-  // ----------------------------------------------------
-  // selectUsersのテスト
-  // ----------------------------------------------------
-  describe('selectUsersのテスト', () => {
-    const dto = new SelectUsersDto();
+  describe('selectUsersByIdのテスト', () => {
     describe('正常系', () => {
-      test('1件の結果が返る場合', async () => {
-        jest
-          .spyOn(prismaService.users, 'findMany')
-          .mockResolvedValueOnce([mockUsers[0]]);
+      test('IDでユーザーが取得できる場合', async () => {
+        jest.spyOn(mockUsersModel, 'findFirst').mockResolvedValueOnce(mockUser);
 
-        // DAOメソッドの呼び出し
-        const result = await dao.selectUsers({ id: 'uuid-1' });
+        const user = await dao.selectUsersById(MOCK_UUID);
 
-        expect(result.length).toBe(1);
-        expect(prismaService.users.findMany).toHaveBeenCalledWith(
-          // prismaService (モック)を使用
-          expect.objectContaining({
-            where: { isDeleted: false, id: 'uuid-1' },
-          }),
-        );
+        expect(user).toEqual(mockUser);
+        expect(mockUsersModel.findFirst).toHaveBeenCalledWith({
+          where: { id: MOCK_UUID, isDeleted: false },
+        });
       });
-      test('複数件の結果が返る場合', async () => {
-        jest
-          .spyOn(prismaService.users, 'findMany')
-          .mockResolvedValueOnce(
-            [mockUsers[0], mockUsers[1]].filter((u) => u.isDeleted === false),
-          );
-        const result = await dao.selectUsers({});
-        expect(result.length).toBe(1); // 削除フラグでフィルタリングされるため
-        expect(prismaService.users.findMany).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where: { isDeleted: false },
-          }),
-        );
-      });
-      test('0件の結果が返る場合', async () => {
-        jest.spyOn(prismaService.users, 'findMany').mockResolvedValueOnce([]);
-        const result = await dao.selectUsers({ name: 'notfound' });
-        expect(result.length).toBe(0);
-        expect(prismaService.users.findMany).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where: { isDeleted: false, name: { contains: 'notfound' } },
-          }),
-        );
+
+      test('IDに一致するユーザーが見つからない場合', async () => {
+        jest.spyOn(mockUsersModel, 'findFirst').mockResolvedValueOnce(null);
+
+        const user = await dao.selectUsersById(MOCK_UUID);
+
+        expect(user).toBeNull();
+        expect(mockUsersModel.findFirst).toHaveBeenCalledWith({
+          where: { id: MOCK_UUID, isDeleted: false },
+        });
       });
     });
+
     describe('異常系', () => {
       test('DB接続エラーが発生した場合', async () => {
         jest
-          .spyOn(prismaService.users, 'findMany')
-          .mockRejectedValueOnce(new Error('DB connection failed'));
-        await expect(dao.selectUsers(dto)).rejects.toThrow(
+          .spyOn(mockUsersModel, 'findFirst')
+          .mockRejectedValueOnce(new Error('DB Error'));
+
+        await expect(dao.selectUsersById(MOCK_UUID)).rejects.toThrow(
           InternalServerErrorException,
         );
       });
     });
   });
 
-  // ----------------------------------------------------
-  // countUsersのテスト
-  // ----------------------------------------------------
-  describe('countUsersのテスト', () => {
-    const dto = new SelectUsersDto();
+  describe('selectUsersByEmailのテスト', () => {
     describe('正常系', () => {
-      test('1が返る場合', async () => {
-        jest.spyOn(prismaService.users, 'count').mockResolvedValueOnce(1);
-        const result = await dao.countUsers({ name: 'Active' });
-        expect(result).toBe(1);
-        expect(prismaService.users.count).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where: { isDeleted: false, name: { contains: 'Active' } },
-          }),
-        );
+      test('メールアドレスでユーザーが取得できる場合', async () => {
+        jest.spyOn(mockUsersModel, 'findFirst').mockResolvedValueOnce(mockUser);
+
+        const user = await dao.selectUsersByEmail(mockUser.email);
+
+        expect(user).toEqual(mockUser);
+        expect(mockUsersModel.findFirst).toHaveBeenCalledWith({
+          where: { email: mockUser.email, isDeleted: false },
+        });
       });
-      test('2以上が返る場合', async () => {
-        jest.spyOn(prismaService.users, 'count').mockResolvedValueOnce(5);
-        const result = await dao.countUsers(dto);
-        expect(result).toBe(5);
-      });
-      test('0が返る場合', async () => {
-        jest.spyOn(prismaService.users, 'count').mockResolvedValueOnce(0);
-        const result = await dao.countUsers(dto);
-        expect(result).toBe(0);
+
+      test('メールアドレスに一致するユーザーが見つからない場合', async () => {
+        jest.spyOn(mockUsersModel, 'findFirst').mockResolvedValueOnce(null);
+
+        const user = await dao.selectUsersByEmail('notfound@example.com');
+
+        expect(user).toBeNull();
+        expect(mockUsersModel.findFirst).toHaveBeenCalledWith({
+          where: { email: 'notfound@example.com', isDeleted: false },
+        });
       });
     });
+
     describe('異常系', () => {
       test('DB接続エラーが発生した場合', async () => {
         jest
-          .spyOn(prismaService.users, 'count')
-          .mockRejectedValueOnce(new Error('DB connection failed'));
-        await expect(dao.countUsers(dto)).rejects.toThrow(
+          .spyOn(mockUsersModel, 'findFirst')
+          .mockRejectedValueOnce(new Error('DB Error'));
+
+        await expect(dao.selectUsersByEmail(mockUser.email)).rejects.toThrow(
           InternalServerErrorException,
         );
       });
     });
   });
 
-  // ----------------------------------------------------
-  // createUsersのテスト
-  // ----------------------------------------------------
-  const createDto: CreateUsersDto = {
-    name: 'New User',
-    email: 'new@example.com',
-    password: 'new-hash',
-    registeredAt: new Date().toISOString(),
-    registeredBy: 'user',
-    isDeleted: false,
-  };
-
-  describe('createUsersのテスト', () => {
+  describe('lockUsersByIdのテスト', () => {
     describe('正常系', () => {
-      test('正常に登録ができる場合', async () => {
-        const createdUser = {
-          ...mockUsers[0],
-          id: 'uuid-new',
-          email: createDto.email,
-        };
+      test('IDでユーザーレコードがロックできる場合', async () => {
+        const lockedRecord: Users[] = [mockUser];
         jest
-          .spyOn(mockUsersTxModel, 'create')
-          .mockResolvedValueOnce(createdUser);
+          .spyOn(mockPrismaService, '$queryRaw')
+          .mockResolvedValueOnce(lockedRecord);
 
-        // DAOメソッドの呼び出し
-        const result = await dao.createUsers(mockPrismaTx as any, createDto);
-        expect(result.email).toBe(createDto.email);
+        const user = await dao.lockUsersById(mockPrismaTx, MOCK_UUID);
+
+        expect(user).toEqual(mockUser);
+        expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
+      });
+      test('ロック対象のユーザーレコードが見つからない場合undefinedが返ること', async () => {
+        jest.spyOn(mockPrismaService, '$queryRaw').mockResolvedValueOnce([]);
+        const user = await dao.lockUsersById(mockPrismaTx, MOCK_UUID);
+        expect(user).toBeUndefined();
       });
     });
+
     describe('異常系', () => {
-      test('一意制約違反が発生した場合', async () => {
-        jest
-          .spyOn(mockUsersTxModel, 'create')
-          .mockRejectedValueOnce(mockPrismaError('P2002'));
-        await expect(
-          dao.createUsers(mockPrismaTx as any, createDto),
-        ).rejects.toThrow(ConflictException);
-      });
-      test('外部キー違反が発生した場合', async () => {
-        jest
-          .spyOn(mockUsersTxModel, 'create')
-          .mockRejectedValueOnce(mockPrismaError('P2003'));
-        await expect(
-          dao.createUsers(mockPrismaTx as any, createDto),
-        ).rejects.toThrow(BadRequestException);
-      });
       test('DB接続エラーが発生した場合', async () => {
         jest
-          .spyOn(mockUsersTxModel, 'create')
-          .mockRejectedValueOnce(new Error('DB connection failed'));
+          .spyOn(mockPrismaService, '$queryRaw')
+          .mockRejectedValueOnce(new Error('DB Error'));
         await expect(
-          dao.createUsers(mockPrismaTx as any, createDto),
+          dao.lockUsersById(mockPrismaTx, MOCK_UUID),
         ).rejects.toThrow(InternalServerErrorException);
       });
     });
   });
 
-  // ----------------------------------------------------
-  // updateUsersのテスト
-  // ----------------------------------------------------
-  const updateData: Users = { ...mockUsers[0], name: 'Updated Name' };
+  describe('createUsersのテスト', () => {
+    const createDto: CreateUsersDto = {
+      name: 'New User',
+      email: 'new@example.com',
+      password: 'newpassword',
+      registeredBy: MOCK_UUID,
+    };
+    const createdUser: Users = {
+      ...mockUser,
+      ...createDto,
+      id: 'new-id',
+      updatedAt: null,
+      updatedBy: null,
+    };
 
-  describe('updateUsersのテスト', () => {
     describe('正常系', () => {
-      test('正常に更新ができる場合', async () => {
-        jest
-          .spyOn(mockUsersTxModel, 'update')
-          .mockResolvedValueOnce(updateData);
-        const result = await dao.updateUsers(mockPrismaTx as any, updateData);
-        expect(result.name).toBe('Updated Name');
+      test('正常に登録ができる場合', async () => {
+        jest.spyOn(mockUsersModel, 'create').mockResolvedValueOnce(createdUser);
+
+        const user = await dao.createUsers(mockPrismaTx, createDto);
+
+        expect(user).toEqual(createdUser);
+        expect(mockUsersModel.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            name: createDto.name,
+            email: createDto.email,
+          }),
+        });
       });
     });
+
     describe('異常系', () => {
       test('一意制約違反が発生した場合', async () => {
         jest
-          .spyOn(mockUsersTxModel, 'update')
+          .spyOn(mockUsersModel, 'create')
           .mockRejectedValueOnce(mockPrismaError('P2002'));
-        await expect(
-          dao.updateUsers(mockPrismaTx as any, updateData),
-        ).rejects.toThrow(ConflictException);
+
+        await expect(dao.createUsers(mockPrismaTx, createDto)).rejects.toThrow(
+          ConflictException,
+        );
       });
       test('外部キー違反が発生した場合', async () => {
-        // updateでもP2003のチェックは必要
         jest
-          .spyOn(mockUsersTxModel, 'update')
+          .spyOn(mockUsersModel, 'create')
           .mockRejectedValueOnce(mockPrismaError('P2003'));
-        await expect(
-          dao.updateUsers(mockPrismaTx as any, updateData),
-        ).rejects.toThrow(BadRequestException);
+
+        await expect(dao.createUsers(mockPrismaTx, createDto)).rejects.toThrow(
+          BadRequestException,
+        );
+      });
+      test('DB接続エラーが発生した場合', async () => {
+        jest
+          .spyOn(mockUsersModel, 'create')
+          .mockRejectedValueOnce(new Error('DB Error'));
+
+        await expect(dao.createUsers(mockPrismaTx, createDto)).rejects.toThrow(
+          InternalServerErrorException,
+        );
+      });
+    });
+  });
+
+  describe('updateUsersのテスト', () => {
+    const updateData: Users = {
+      ...mockUser,
+      name: 'Updated Name',
+      updatedAt: new Date(),
+      updatedBy: 'updater-id',
+    };
+
+    describe('正常系', () => {
+      test('正常に更新ができる場合', async () => {
+        jest.spyOn(mockUsersModel, 'update').mockResolvedValueOnce(updateData);
+
+        const user = await dao.updateUsers(mockPrismaTx, updateData);
+
+        expect(user).toEqual(updateData);
+        expect(mockUsersModel.update).toHaveBeenCalledWith({
+          where: { id: updateData.id },
+          data: expect.objectContaining({ name: updateData.name }),
+        });
+      });
+    });
+
+    describe('異常系', () => {
+      test('一意制約違反が発生した場合', async () => {
+        jest
+          .spyOn(mockUsersModel, 'update')
+          .mockRejectedValueOnce(mockPrismaError('P2002'));
+
+        await expect(dao.updateUsers(mockPrismaTx, updateData)).rejects.toThrow(
+          ConflictException,
+        );
+      });
+      test('外部キー違反が発生した場合', async () => {
+        jest
+          .spyOn(mockUsersModel, 'update')
+          .mockRejectedValueOnce(mockPrismaError('P2003'));
+
+        await expect(dao.updateUsers(mockPrismaTx, updateData)).rejects.toThrow(
+          BadRequestException,
+        );
       });
       test('更新レコードが見つからない場合', async () => {
         jest
-          .spyOn(mockUsersTxModel, 'update')
+          .spyOn(mockUsersModel, 'update')
           .mockRejectedValueOnce(mockPrismaError('P2025'));
-        await expect(
-          dao.updateUsers(mockPrismaTx as any, updateData),
-        ).rejects.toThrow(NotFoundException);
-      });
-      test('DB接続エラーが発生した場合', async () => {
-        jest
-          .spyOn(mockUsersTxModel, 'update')
-          .mockRejectedValueOnce(new Error('DB connection failed'));
-        await expect(
-          dao.updateUsers(mockPrismaTx as any, updateData),
-        ).rejects.toThrow(InternalServerErrorException);
-      });
-    });
-  });
 
-  // ----------------------------------------------------
-  // softDeleteUsersのテスト
-  // ----------------------------------------------------
-  describe('softDeleteUsersのテスト', () => {
-    describe('正常系', () => {
-      test('正常に論理削除ができる場合', async () => {
-        const softDeletedUser = { ...mockUsers[0], isDeleted: true };
-        jest
-          .spyOn(mockUsersTxModel, 'update')
-          .mockResolvedValueOnce(softDeletedUser);
-        const result = await dao.softDeleteUsers(mockPrismaTx as any, 'uuid-1');
-        // 【修正】isDeletedはBooleanなのでtrueと比較
-        expect(result.isDeleted).toBe(true);
-      });
-    });
-    describe('異常系', () => {
-      test('論理削除レコードが見つからない場合', async () => {
-        jest
-          .spyOn(mockUsersTxModel, 'update')
-          .mockRejectedValueOnce(mockPrismaError('P2025'));
-        await expect(
-          dao.softDeleteUsers(mockPrismaTx as any, 'uuid-not-found'),
-        ).rejects.toThrow(NotFoundException);
+        await expect(dao.updateUsers(mockPrismaTx, updateData)).rejects.toThrow(
+          NotFoundException,
+        );
       });
       test('DB接続エラーが発生した場合', async () => {
         jest
-          .spyOn(mockUsersTxModel, 'update')
-          .mockRejectedValueOnce(new Error('DB connection failed'));
-        await expect(
-          dao.softDeleteUsers(mockPrismaTx as any, 'uuid-1'),
-        ).rejects.toThrow(InternalServerErrorException);
-      });
-    });
-  });
+          .spyOn(mockUsersModel, 'update')
+          .mockRejectedValueOnce(new Error('DB Error'));
 
-  // ----------------------------------------------------
-  // hardDeleteUsersのテスト
-  // ----------------------------------------------------
-  describe('hardDeleteUsersのテスト', () => {
-    describe('正常系', () => {
-      test('正常に物理削除ができる場合', async () => {
-        // 【修正】物理削除成功はResolvedValueを使用
-        jest
-          .spyOn(mockUsersTxModel, 'delete')
-          .mockResolvedValueOnce(mockUsers[0]);
-        const result = await dao.hardDeleteUsers(mockPrismaTx as any, 'uuid-1');
-        expect(result.id).toBe('uuid-1');
-      });
-    });
-    describe('異常系', () => {
-      test('物理削除レコードが見つからない場合', async () => {
-        jest
-          .spyOn(mockUsersTxModel, 'delete')
-          .mockRejectedValueOnce(mockPrismaError('P2025'));
-        await expect(
-          dao.hardDeleteUsers(mockPrismaTx as any, 'uuid-not-found'),
-        ).rejects.toThrow(NotFoundException);
-      });
-      test('外部キー違反が発生した場合', async () => {
-        jest
-          .spyOn(mockUsersTxModel, 'delete')
-          .mockRejectedValueOnce(mockPrismaError('P2003'));
-        await expect(
-          dao.hardDeleteUsers(mockPrismaTx as any, 'uuid-1'),
-        ).rejects.toThrow(BadRequestException);
-      });
-      test('DB接続エラーが発生した場合', async () => {
-        jest
-          .spyOn(mockUsersTxModel, 'delete')
-          .mockRejectedValueOnce(new Error('DB connection failed'));
-        await expect(
-          dao.hardDeleteUsers(mockPrismaTx as any, 'uuid-1'),
-        ).rejects.toThrow(InternalServerErrorException);
+        await expect(dao.updateUsers(mockPrismaTx, updateData)).rejects.toThrow(
+          InternalServerErrorException,
+        );
       });
     });
   });
