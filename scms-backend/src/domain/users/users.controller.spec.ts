@@ -43,7 +43,7 @@ describe('UsersController (Controller) Test', () => {
     const CREATED_ID = '00000000-0000-0000-0000-000000000001';
 
     describe('正常系', () => {
-      it('オーケストレーターのユーザー作成が実行されて、ユーザーIDが返ること', async () => {
+      it('ユーザー登録が実行されて、ユーザーIDが返ること', async () => {
         mockUsersOrchestrator.create.mockResolvedValue(CREATED_ID);
         const result: string = await controller.create(mockRequestDto);
         expect(orchestrator.create).toHaveBeenCalledWith(mockRequestDto);
