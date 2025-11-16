@@ -1,4 +1,4 @@
-# Simple contract management system ドキュメント統制・AIガバナンス実証API
+# Simple contract management system ドキュメント統制・AIガバナンス実証サンプルAPI
 
 本APIは、[simple-contract-management-system](https://github.com/ryo-ichikawa-0308/simple-contract-management-system)とそのサブモジュール群で提示するドキュメント統制・AIガバナンスの実証サンプルである。ドキュメント統制・AIガバナンスに従って実装したAPIのソースコードを資産に含む。
 
