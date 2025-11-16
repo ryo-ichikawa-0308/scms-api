@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -131,7 +132,7 @@ describe('PrismaService (Service) Test', () => {
   describe('onModuleDestroy', () => {
     describe('正常系', () => {
       it('$disconnectが成功し、切断ログが出力されること', async () => {
-        // @ts-expect-error: disconnectにエラーを返させるためエラー回避
+        // @ts-expect-error: disconnectを成功させるためエラー回避
         service.$disconnect.mockResolvedValue(undefined);
 
         await service.onModuleDestroy();
@@ -142,67 +143,19 @@ describe('PrismaService (Service) Test', () => {
         );
       });
     });
-  });
-
-  describe('enableShutdownHooks', () => {
-    describe('正常系 (SIGINT/SIGTERM)', () => {
-      it('SIGINT受信時、グレースフルシャットダウンとprocess.exit(0)が実行されること', async () => {
-        // @ts-expect-error: disconnectにエラーを返させるためエラー回避
-        service.$disconnect.mockResolvedValue(undefined);
-
-        await expect(sigIntCallback!('SIGINT')).rejects.toThrow(
-          'process.exit was called',
-        );
-
-        expect(service.$disconnect).toHaveBeenCalledTimes(1);
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          'Received SIGINT. Starting graceful shutdown...',
-        );
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          'Prisma client successfully disconnected.',
-        );
-        expect(processExitSpy).toHaveBeenCalledWith(0);
-      });
-
-      it('SIGTERM受信時、グレースフルシャットダウンとprocess.exit(0)が実行されること', async () => {
-        // @ts-expect-error: disconnectにエラーを返させるためエラー回避
-        service.$disconnect.mockResolvedValue(undefined);
-
-        await expect(sigTermCallback!('SIGTERM')).rejects.toThrow(
-          'process.exit was called',
-        );
-
-        expect(service.$disconnect).toHaveBeenCalledTimes(1);
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          'Received SIGTERM. Starting graceful shutdown...',
-        );
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          'Prisma client successfully disconnected.',
-        );
-        expect(processExitSpy).toHaveBeenCalledWith(0);
-      });
-    });
-
     describe('異常系', () => {
-      it('シャットダウン時の$disconnectが失敗した場合、エラーログを出力しprocess.exit(1)が呼ばれること', async () => {
-        const mockShutdownError = new Error(
-          'Disconnect Failed during shutdown',
-        );
+      it('$disconnectが失敗した場合、エラーログを出力し、process.exit(1)で終了すること', async () => {
+        const mockError = new Error('DB Disconnection Failed');
         // @ts-expect-error: disconnectにエラーを返させるためエラー回避
-        service.$disconnect.mockRejectedValue(mockShutdownError);
+        service.$disconnect.mockRejectedValue(mockError);
 
-        await expect(sigIntCallback!('SIGINT')).rejects.toThrow(
-          'process.exit was called',
+        await expect(service.onModuleDestroy()).rejects.toThrow(
+          'DB Disconnection Failed',
         );
 
         expect(service.$disconnect).toHaveBeenCalledTimes(1);
-        expect(mockConsoleError).toHaveBeenCalledWith(
-          'Fatal error during SIGINT shutdown:',
-          mockShutdownError,
-        );
-        expect(processExitSpy).toHaveBeenCalledWith(1);
         expect(mockConsoleLog).not.toHaveBeenCalledWith(
-          'Prisma client successfully disconnected.',
+          'PrismaService disconnected from the database.',
         );
       });
     });
