@@ -72,7 +72,7 @@ describe('UsersOrchestrator (Orchestrator) Test', () => {
     randomUUIDMock.mockReturnValue(MOCK_NEW_USER_ID);
   });
 
-  it('オーケストレーターが定義されていること', () => {
+  it('オーケストレーションクラスが定義されていること', () => {
     expect(orchestrator).toBeDefined();
   });
 
