@@ -1,5 +1,9 @@
 # API疎通コマンド
 
+## 前提
+
+[メインプロジェクト](https://github.com/ryo-ichikawa-0308/simple-contract-management-system)で提供している開発環境で実行すること。
+
 ## 事前準備
 
 環境変数ファイル`.env`の`ACCESS_TOKEN_EXPIRES`を3600000(1時間)など長時間に設定しておく。
@@ -26,7 +30,7 @@ curl -X POST \
      http://localhost:3000/api/v1/auth/login
 ```
 
-※戻り値でユーザーIDとアクセストークンが返ってくるので、メモしておく。
+※戻り値でユーザーIDとアクセストークンが返ってくるので、コピーしておく。
 
 ## ログアウトAPIの疎通
 
@@ -67,7 +71,7 @@ curl -X POST \
      http://localhost:3000/api/v1/services
 ```
 
-※戻り値でサービスIDが返ってくるので、メモしておく。
+※戻り値でサービスIDが返ってくるので、コピーしておく。
 
 ## ユーザー提供サービス登録APIの疎通
 
@@ -82,7 +86,7 @@ curl -X POST \
      http://localhost:3000/api/v1/user-services
 ```
 
-※戻り値でユーザー提供サービスIDが返ってくるので、メモしておく。
+※戻り値でユーザー提供サービスIDが返ってくるので、コピーしておく。
 
 ## サービス一覧APIの疎通
 
@@ -121,7 +125,7 @@ curl -X POST \
      http://localhost:3000/api/v1/contracts
 ```
 
-※戻り値で契約IDが返ってくるので、メモしておく。
+※戻り値で契約IDが返ってくるので、コピーしておく。
 
 ## 契約一覧APIの疎通
 
