@@ -8,9 +8,9 @@ import { UsersDao } from 'src/database/dao/users.dao';
 
 import * as bcrypt from 'bcrypt';
 import { Users } from '@prisma/client';
-import { RefreshTokenStrategy } from './refresh-token.strategy';
+import { RefreshTokenStrategy } from './strategy/refresh-token.strategy';
 import { AuthLoginResponseDto } from 'src/domain/auth/dto/auth-login-response.dto';
-import { AccessTokenStrategy } from './access-token.strategy';
+import { AccessTokenStrategy } from './strategy/access-token.strategy';
 import { AuthRefreshResponseDto } from 'src/domain/auth/dto/auth-refresh-response.dto';
 import { ConfigService } from '@nestjs/config';
 const SALT_ROUNDS = 10;
@@ -27,7 +27,6 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  // ログイン (POST/login) - トランザクション対応メソッド
   /**
    * ログイン処理 (トランザクション内実行)
    * @param prismaTx トランザクション
@@ -66,14 +65,14 @@ export class AuthService {
 
     // 4. アクセストークンを取得
     const accessToken = this.accessTokenStrategy.generateAccessToken(
-      user.id,
-      user.name,
+      loginUser.id,
+      loginUser.name,
     );
 
     // 5. 認証情報を返却
     const responseDto = new AuthLoginResponseDto({
-      id: user.id,
-      name: user.name,
+      id: loginUser.id,
+      name: loginUser.name,
       token: {
         accessToken: accessToken,
         expiresIn: this.configService.getOrThrow<number>(
@@ -88,7 +87,6 @@ export class AuthService {
     return responseDto;
   }
 
-  // ログアウト (POST/logout) - トランザクション対応メソッド
   /**
    * ログアウト処理 (トランザクション内実行)
    * @param prismaTx トランザクション
@@ -118,6 +116,7 @@ export class AuthService {
     // 2. ログアウト成功。
     return true;
   }
+
   /**
    * トークンリフレッシュ (リフレッシュトークンを更新する。)
    * @param prismaTx トランザクション
@@ -132,8 +131,8 @@ export class AuthService {
     userId: string,
     userName: string,
   ): Promise<AuthRefreshResponseDto> {
-    // 1. DAOのtx対応メソッドを呼び出し、DB更新を実行 (prismaTxを渡す)
-    const generatedToken = this.refreshTokenStrategy.generateRefreshToken(
+    // 1. DAOのtx対応メソッドを呼び出し、DB更新を実行
+    const refreshToken = this.refreshTokenStrategy.generateRefreshToken(
       userId,
       userName,
     );
@@ -143,25 +142,30 @@ export class AuthService {
     }
     const updateDto: Users = {
       ...user,
-      token: generatedToken,
+      token: refreshToken,
       updatedAt: txDateTime,
       updatedBy: userId,
     };
     await this.usersDao.updateUsers(prismaTx, updateDto);
-    // 4. アクセストークンを取得
+
+    // 2. アクセストークンを取得
     const accessToken = this.accessTokenStrategy.generateAccessToken(
-      user.id,
-      user.name,
+      userId,
+      userName,
     );
 
-    // 5. トークン情報を返却
+    // 3. トークン情報を返却
     const refreshDto = new AuthRefreshResponseDto({
       token: {
         accessToken: accessToken,
-        expiresIn: 100,
+        expiresIn: this.configService.getOrThrow<number>(
+          'ACCESS_TOKEN_EXPIRES',
+        ),
       },
-      refreshToken: generatedToken,
-      refreshTokenExpiresIn: 1,
+      refreshToken: refreshToken,
+      refreshTokenExpiresIn: this.configService.getOrThrow<number>(
+        'REFRESH_TOKEN_EXPIRES',
+      ),
     });
     return refreshDto;
   }

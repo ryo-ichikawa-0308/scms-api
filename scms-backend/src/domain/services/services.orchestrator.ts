@@ -28,29 +28,28 @@ export class ServicesOrchestrator {
     body: ServicesCreateRequestDto,
     userId: string,
   ): Promise<string> {
-    const txDateTime = new Date();
+    // 1. 項目間関連チェック(Service層のメソッドを呼び出す)
+    const isServiceExists = await this.servicesService.isServiceExists(
+      body.name,
+    );
+    if (isServiceExists) {
+      throw new ConflictException('このサービスは登録できません');
+    }
 
-    const result = await this.prismaTransaction.$transaction(
+    // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, 各種dtoを渡す
+    const txDateTime = new Date();
+    const response = await this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
-        // 1. 項目間関連チェック(Service層のメソッドを呼び出す)
-        const isServiceExists = await this.servicesService.isServiceExists(
-          body.name,
-        );
-        if (isServiceExists) {
-          throw new ConflictException('このサービスは登録できません');
-        }
-        // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, 各種dtoを渡す
-        const response = await this.servicesService.createWithTx(
+        const result = await this.servicesService.createWithTx(
           prismaTx,
           userId,
           txDateTime,
           body,
         );
-        // 3. 登録したリソースのIDを返す
-        return response;
+        return result;
       },
     );
-
-    return result;
+    // 3. 登録したリソースのIDを返す
+    return response;
   }
 }

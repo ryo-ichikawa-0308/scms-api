@@ -18,7 +18,6 @@ export class ContractsOrchestrator {
     private readonly prismaTransaction: PrismaTransaction,
   ) {}
 
-  // サービス契約 (POST/create)
   /**
    * サービス契約
    * @param body ContractsCreateRequestDto
@@ -31,9 +30,10 @@ export class ContractsOrchestrator {
   ): Promise<string> {
     // 1. 項目間関連チェック(Service層のメソッドを呼び出す)
     await this.contractsService.isValidContract(body);
-    const txDateTime = new Date();
+
     // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, bodyを渡す
-    return this.prismaTransaction.$transaction(
+    const txDateTime = new Date();
+    const response = await this.prismaTransaction.$transaction(
       async (prismaTx: PrismaTransaction) => {
         const result = await this.contractsService.createWithTx(
           prismaTx,
@@ -41,14 +41,13 @@ export class ContractsOrchestrator {
           txDateTime,
           body,
         );
-
-        // 3. 結果を返却
         return result;
       },
     );
+    // 3. 登録したリソースのIDを返す
+    return response;
   }
 
-  // サービス解約 (PATCH/cancel)
   /**
    * サービス解約
    * @param body ContractsCancelRequestDto

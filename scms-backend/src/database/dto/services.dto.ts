@@ -10,64 +10,9 @@ import {
 import { Type } from 'class-transformer';
 
 /**
- * サービスの標準検索用DTO
- */
-export class SelectServicesDto {
-  /// ID
-  @IsOptional()
-  @IsString({ message: 'IDは文字列で入力してください。' })
-  id?: string;
-
-  /// サービス名
-  @IsOptional()
-  @IsString({ message: 'サービス名は文字列で入力してください。' })
-  name?: string;
-
-  /// 概要
-  @IsOptional()
-  @IsString({ message: '概要は文字列で入力してください。' })
-  description?: string;
-
-  /// 単価
-  @IsOptional()
-  @IsInt({ message: '単価は数値で入力してください。' })
-  @Type(() => Number)
-  price?: number;
-
-  /// 単位
-  @IsOptional()
-  @IsString({ message: '単位は文字列で入力してください。' })
-  unit?: string;
-
-  @IsOptional()
-  @IsInt({ message: 'offsetは数値で入力してください。' })
-  @Type(() => Number)
-  offset?: number;
-
-  @IsOptional()
-  @IsInt({ message: 'limitは数値で入力してください。' })
-  @Type(() => Number)
-  limit?: number;
-
-  @IsOptional()
-  @IsString({ message: 'sortByは文字列で入力してください。' })
-  sortBy?: string;
-
-  @IsOptional()
-  @IsString({ message: 'sortOrderは文字列で入力してください。' })
-  sortOrder?: 'asc' | 'desc';
-}
-
-/**
  * サービスの登録用DTO
  */
 export class CreateServicesDto {
-  /// ID
-  @IsOptional()
-  @IsUUID('4', { message: 'IDは文字列で入力してください。' })
-  @MaxLength(36, { message: 'IDは36桁以下で入力してください。' })
-  id?: string;
-
   /// サービス名
   @MaxLength(256, { message: 'サービス名は256桁以下で入力してください。' })
   @IsString({ message: 'サービス名は文字列で入力してください。' })
@@ -94,7 +39,7 @@ export class CreateServicesDto {
   registeredAt?: Date;
 
   /// 登録者
-  @IsUUID('4', { message: '登録者は文字列で入力してください。' })
+  @IsUUID('4', { message: '登録者はUUIDで入力してください。' })
   @MaxLength(36, { message: '登録者は36桁以下で入力してください。' })
   @IsString({ message: '登録者は文字列で入力してください。' })
   registeredBy: string;
@@ -106,7 +51,7 @@ export class CreateServicesDto {
 
   /// 更新者
   @IsOptional()
-  @IsUUID('4', { message: '更新者は文字列で入力してください。' })
+  @IsUUID('4', { message: '更新者はUUIDで入力してください。' })
   @MaxLength(36, { message: '更新者は36桁以下で入力してください。' })
   updatedBy?: string;
 

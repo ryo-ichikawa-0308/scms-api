@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { JwtPayload } from './jwt-payload';
+import { JwtPayload } from '../../../types/jwt-payload';
 import { UsersDao } from 'src/database/dao/users.dao';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -25,7 +25,13 @@ export class RefreshTokenStrategy extends PassportStrategy(
       passReqToCallback: true,
     });
   }
-  // 署名検証に成功すると、このメソッドが呼ばれる
+
+  /**
+   * 署名検証後、リフレッシュトークンを検証する。
+   * @param req リクエスト
+   * @param payload JWTペイロード
+   * @returns 認証成功したら、ペイロードのデータを返す。
+   */
   async validate(req: Request, payload: JwtPayload) {
     // リクエストヘッダからAuthorizationを取得
     const authorizationHeader = req.headers['authorization'];
@@ -53,6 +59,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
       username: payload.username,
     };
   }
+
   /**
    * リフレッシュトークンを生成する
    * @param userId ペイロードに登録するユーザーID

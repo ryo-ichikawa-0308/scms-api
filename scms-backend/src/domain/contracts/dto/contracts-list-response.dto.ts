@@ -7,6 +7,10 @@ import { ContractsResponseContractItemDto } from './contracts-response-contract-
  * 契約一覧 レスポンスDTO
  */
 export class ContractsListResponseDto extends ListResponseBase<ContractsResponseContractItemDto> {
+  constructor(partial: Partial<ContractsListResponseDto>) {
+    super();
+    Object.assign(this, partial);
+  }
   /** 契約リスト */
   @ValidateNested({ each: true })
   @Type(() => ContractsResponseContractItemDto)

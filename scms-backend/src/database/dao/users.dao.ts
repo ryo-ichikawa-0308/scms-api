@@ -8,7 +8,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PrismaTransaction } from 'src/prisma/prisma.type';
 import { Users, Prisma } from '@prisma/client';
-import { SelectUsersDto, CreateUsersDto } from 'src/database/dto/users.dto';
+import { CreateUsersDto } from 'src/database/dto/users.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
@@ -67,85 +67,17 @@ export class UsersDao {
     prismaTx: PrismaTransaction,
     id: string,
   ): Promise<Users | null> {
-    const lockedRecords: Users[] = await prismaTx.$queryRaw<Users[]>`
+    try {
+      const lockedRecords: Users[] = await prismaTx.$queryRaw<Users[]>`
       SELECT id FROM users 
       WHERE id = ${id} AND is_deleted = false
       FOR UPDATE
     `;
-    if (lockedRecords.length === 0) {
-      throw new NotFoundException(
-        `ロック対象のユーザーレコード (ID: ${id}) が見つかりません。`,
-      );
-    }
-    return lockedRecords[0];
-  }
-
-  /**
-   * ユーザーを取得する
-   * @param dto ユーザーの検索用DTO
-   * @returns 取得したテーブルの配列
-   */
-  async selectUsers(dto: SelectUsersDto): Promise<Users[]> {
-    try {
-      const where: Prisma.UsersWhereInput = {
-        isDeleted: false,
-      };
-
-      if (dto.id) where.id = { contains: dto.id };
-      if (dto.name) where.name = { contains: dto.name };
-      if (dto.email) where.email = { contains: dto.email };
-      if (dto.password) where.password = { contains: dto.password };
-      if (dto.token) where.token = { contains: dto.token };
-      // 監査項目は検索対象外
-
-      const orderBy: Prisma.UsersOrderByWithRelationInput = {};
-      if (dto.sortBy) {
-        // sortByが設定されていて、sortOrderが設定されていない場合は'asc'で補完
-        const sortOrder = dto.sortOrder || 'asc';
-        orderBy[dto.sortBy] = sortOrder;
-      }
-
-      const users = await this.prisma.users.findMany({
-        where,
-        skip: dto.offset,
-        take: dto.limit,
-        orderBy: orderBy,
-      });
-      return users;
+      return lockedRecords[0];
     } catch (e) {
       throw new InternalServerErrorException(
         e,
-        'ユーザーの取得中に予期せぬエラーが発生しました。',
-      );
-    }
-  }
-
-  /**
-   * ユーザーの件数を取得する
-   * @param dto ユーザーの検索用DTO
-   * @returns 取得したレコードの件数
-   */
-  async countUsers(dto: SelectUsersDto): Promise<number> {
-    try {
-      const where: Prisma.UsersWhereInput = {
-        isDeleted: false,
-      };
-
-      if (dto.id) where.id = { contains: dto.id };
-      if (dto.name) where.name = { contains: dto.name };
-      if (dto.email) where.email = { contains: dto.email };
-      if (dto.password) where.password = { contains: dto.password };
-      if (dto.token) where.token = { contains: dto.token };
-      // 監査項目は検索対象外
-
-      const count = await this.prisma.users.count({
-        where,
-      });
-      return count;
-    } catch (e) {
-      throw new InternalServerErrorException(
-        e,
-        'ユーザーの件数取得中に予期せぬエラーが発生しました。',
+        'ユーザーのロック取得中に予期せぬエラーが発生しました',
       );
     }
   }
@@ -230,79 +162,6 @@ export class UsersDao {
       }
       throw new InternalServerErrorException(
         'ユーザーの更新中に予期せぬエラーが発生しました。',
-      );
-    }
-  }
-
-  /**
-   * ユーザーを論理削除する
-   * @param prismaTx トランザクション
-   * @param id ユーザーのID(主キー)
-   * @param updatedAt トランザクション開始日時
-   * @param updatedBy トランザクションを行うユーザーのID
-   * @returns 論理削除したレコード
-   */
-  async softDeleteUsers(
-    prismaTx: PrismaTransaction,
-    id: string,
-    updatedAt: Date,
-    updatedBy: string,
-  ): Promise<Users> {
-    try {
-      return await prismaTx.users.update({
-        where: { id },
-        data: {
-          isDeleted: true,
-          updatedAt: updatedAt,
-          updatedBy: updatedBy,
-        },
-      });
-    } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError) {
-        if (e.code === 'P2025') {
-          // レコードが見つからない
-          throw new NotFoundException(
-            '論理削除対象のユーザーが見つかりません。',
-          );
-        }
-      }
-      throw new InternalServerErrorException(
-        'ユーザーの論理削除中に予期せぬエラーが発生しました。',
-      );
-    }
-  }
-
-  /**
-   * ユーザーを物理削除する
-   * @param prismaTx トランザクション
-   * @param id ユーザーのID(主キー)
-   * @returns 物理削除したレコード
-   */
-  async hardDeleteUsers(
-    prismaTx: PrismaTransaction,
-    id: string,
-  ): Promise<Users> {
-    try {
-      return await prismaTx.users.delete({
-        where: { id },
-      });
-    } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError) {
-        if (e.code === 'P2025') {
-          // レコードが見つからない
-          throw new NotFoundException(
-            '物理削除対象のユーザーが見つかりません。',
-          );
-        }
-        if (e.code === 'P2003') {
-          // 外部キー違反
-          throw new BadRequestException(
-            '外部キー制約に違反するため、ユーザーの物理削除ができません。',
-          );
-        }
-      }
-      throw new InternalServerErrorException(
-        'ユーザーの物理削除中に予期せぬエラーが発生しました。',
       );
     }
   }

@@ -5,6 +5,9 @@ import { DatabaseModule } from 'src/database/database.module';
 import { AccessTokenStrategy } from './access-token.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
+/**
+ * アクセストークンモジュール
+ */
 @Module({
   imports: [
     DatabaseModule,
@@ -24,4 +27,4 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   providers: [AccessTokenStrategy],
   exports: [JwtModule, AccessTokenStrategy],
 })
-export class AccessTokenServiceModule {}
+export class AccessTokenStrategyModule {}

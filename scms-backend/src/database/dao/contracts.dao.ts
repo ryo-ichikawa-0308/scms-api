@@ -63,17 +63,19 @@ export class ContractsDao {
     prismaTx: PrismaTransaction,
     id: string,
   ): Promise<Contracts | null> {
-    const lockedRecords: Contracts[] = await prismaTx.$queryRaw<Contracts[]>`
-      SELECT id FROM contracts 
+    try {
+      const lockedRecords: Contracts[] = await prismaTx.$queryRaw<Contracts[]>`
+      SELECT id, user_services_id as userServicesId, quantity FROM contracts 
       WHERE id = ${id} AND is_deleted = false
       FOR UPDATE
     `;
-    if (lockedRecords.length === 0) {
-      throw new NotFoundException(
-        `ロック対象の契約レコード (ID: ${id}) が見つかりません。`,
+      return lockedRecords[0];
+    } catch (e) {
+      throw new InternalServerErrorException(
+        e,
+        '契約テーブルのロック中に予期せぬエラーが発生しました',
       );
     }
-    return lockedRecords[0];
   }
   /**
    * 契約を取得する
@@ -82,27 +84,16 @@ export class ContractsDao {
    */
   async selectContracts(dto: SelectContractsDto): Promise<Contracts[]> {
     try {
-      const where: Prisma.ContractsWhereInput = {
-        isDeleted: false,
-      };
-
-      if (dto.id) where.id = { contains: dto.id };
-      if (dto.usersId) where.usersId = { contains: dto.usersId };
-      if (dto.userServicesId)
-        where.userServicesId = { contains: dto.userServicesId };
-      if (dto.quantity !== undefined) where.quantity = dto.quantity;
-
-      const orderBy: Prisma.ContractsOrderByWithRelationInput = {};
-      if (dto.sortBy) {
-        const sortOrder = dto.sortOrder || 'asc';
-        orderBy[dto.sortBy] = sortOrder;
-      }
-
-      const contracts = (await this.prisma.contracts.findMany({
-        where,
-        skip: dto.offset,
-        take: dto.limit,
-        orderBy: orderBy,
+      const query: Prisma.ContractsFindManyArgs = {
+        where: {
+          isDeleted: false,
+          usersId: dto.usersId,
+          userServices: {
+            services: {
+              name: { contains: dto.serviceName },
+            },
+          },
+        },
         include: {
           users: true,
           userServices: {
@@ -112,7 +103,18 @@ export class ContractsDao {
             },
           },
         },
-      })) as ContractsDetailDto[];
+      };
+      const orderBy: Prisma.ContractsOrderByWithRelationInput = {};
+      if (dto.sortBy) {
+        const sortOrder = dto.sortOrder || 'asc';
+        orderBy[dto.sortBy] = sortOrder;
+      }
+      query.skip = dto.offset;
+      query.take = dto.limit;
+      query.orderBy = orderBy;
+      const contracts = (await this.prisma.contracts.findMany(
+        query,
+      )) as ContractsDetailDto[];
       return contracts;
     } catch (e) {
       throw new InternalServerErrorException(
@@ -129,20 +131,18 @@ export class ContractsDao {
    */
   async countContracts(dto: SelectContractsDto): Promise<number> {
     try {
-      const where: Prisma.ContractsWhereInput = {
-        isDeleted: false,
+      const query: Prisma.ContractsCountArgs = {
+        where: {
+          isDeleted: false,
+          usersId: dto.usersId,
+          userServices: {
+            services: {
+              name: { contains: dto.serviceName },
+            },
+          },
+        },
       };
-
-      if (dto.id) where.id = { contains: dto.id };
-      if (dto.usersId) where.usersId = { contains: dto.usersId };
-      if (dto.userServicesId)
-        where.userServicesId = { contains: dto.userServicesId };
-      if (dto.quantity !== undefined) where.quantity = dto.quantity;
-      // 監査項目は検索対象外
-
-      const count = await this.prisma.contracts.count({
-        where,
-      });
+      const count = await this.prisma.contracts.count(query);
       return count;
     } catch (e) {
       if (e instanceof PrismaClientKnownRequestError) {
@@ -208,14 +208,12 @@ export class ContractsDao {
     updateData: Contracts,
   ): Promise<Contracts> {
     try {
-      const { id, usersId, userServicesId, ...data } = updateData;
+      const { id, ...data } = updateData;
 
       return await prismaTx.contracts.update({
         where: { id },
         data: {
           ...data,
-          users: { connect: { id: usersId } },
-          userServices: { connect: { id: userServicesId } },
         },
       });
     } catch (e) {
@@ -273,40 +271,6 @@ export class ContractsDao {
       }
       throw new InternalServerErrorException(
         '契約の論理削除中に予期せぬエラーが発生しました。',
-      );
-    }
-  }
-
-  /**
-   * 契約を物理削除する
-   * @param prismaTx トランザクション
-   * @param id 契約のID(主キー)
-   * @returns 物理削除したレコード
-   */
-  async hardDeleteContracts(
-    prismaTx: PrismaTransaction,
-    id: string,
-  ): Promise<Contracts> {
-    try {
-      return await prismaTx.contracts.delete({
-        where: { id },
-      });
-    } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError) {
-        if (e.code === 'P2025') {
-          // レコードが見つからない
-          throw new NotFoundException('物理削除対象の契約が見つかりません。');
-        }
-        // Contractsは子テーブルを持たないため、通常はP2003は発生しないが、念のため
-        if (e.code === 'P2003') {
-          // 外部キー違反
-          throw new BadRequestException(
-            '外部キー制約に違反するため、契約の物理削除ができません。',
-          );
-        }
-      }
-      throw new InternalServerErrorException(
-        '契約の物理削除中に予期せぬエラーが発生しました。',
       );
     }
   }

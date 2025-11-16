@@ -1,4 +1,4 @@
-import { JwtPayload } from 'src/service/auth/jwt-payload';
+import { JwtPayload } from 'src/types/jwt-payload';
 // ExpressのRequestオブジェクトを拡張し、認証情報を参照できるようにする。
 declare global {
   declare namespace Express {

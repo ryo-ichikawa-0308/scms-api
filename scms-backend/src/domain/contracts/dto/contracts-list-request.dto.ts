@@ -7,6 +7,6 @@ import { ListRequestBase } from 'src/domain/common/common-paging.dto';
 export class ContractsListRequestDto extends ListRequestBase {
   /** サービス名 */
   @IsString()
-  @MaxLength(100)
+  @MaxLength(256)
   serviceName?: string;
 }

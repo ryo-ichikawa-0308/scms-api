@@ -30,7 +30,6 @@ export class UserServicesController {
     private readonly userServicesOrchestrator: UserServicesOrchestrator,
   ) {}
 
-  // サービス一覧 (POST/list) API
   /**
    * サービス一覧
    * @param body Request Body (UserServicesListRequestDto)
@@ -46,7 +45,6 @@ export class UserServicesController {
     return this.userServicesService.list(body);
   }
 
-  // サービス詳細 (GET/detail) API
   /**
    * サービス詳細
    * @param pathParams Pathパラメータ (UserServicesDetailPathParamsDto)
@@ -60,15 +58,16 @@ export class UserServicesController {
     // 1. 処理委譲 (GETメソッドはServiceに委譲)
     return this.userServicesService.detail(pathParams.id);
   }
+
   /**
    * ユーザー提供サービス登録
    * @param body Request Body
-   * @param req Express Requestオブジェクト (authRequired === trueの場合のみ)
+   * @param req Express Requestオブジェクト
    * @returns UserServicesCreateResponseDto
    */
-  @Post() // endpoint: /user-services/
+  @Post()
   @UseGuards(AuthGuard('jwt'))
-  @HttpCode(HttpStatus.CREATED) // response.status: 201
+  @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() body: UserServicesCreateRequestDto,
     @Req() req: Request,

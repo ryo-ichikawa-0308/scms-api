@@ -1,36 +1,12 @@
-import { IsOptional, IsString, IsNumber } from 'class-validator';
+import { ContractsResponseContractItemDto } from './contracts-response-contract-item.dto';
 
 /**
  * 契約詳細 レスポンスDTO
  */
-export class ContractsDetailResponseDto {
-  /** ID */
-  @IsOptional()
-  @IsString()
-  id?: string;
-
-  /** ユーザーID */
-  @IsOptional()
-  @IsString()
-  usersId?: string;
-
-  /** ユーザー提供サービスID */
-  @IsOptional()
-  @IsString()
-  userServicesId?: string;
-
-  /** 契約数 */
-  @IsOptional()
-  @IsNumber()
-  quantity?: number;
-
-  /** サービス名 */
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  /** 単位 */
-  @IsOptional()
-  @IsString()
-  unit?: string;
+export class ContractsDetailResponseDto extends ContractsResponseContractItemDto {
+  constructor(partial: Partial<ContractsDetailResponseDto>) {
+    super();
+    Object.assign(this, partial);
+  }
+  // 契約一覧の明細と同じデータ構造
 }

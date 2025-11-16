@@ -9,16 +9,15 @@ import { PrismaTransaction } from 'src/prisma/prisma.type';
  */
 @Injectable()
 export class ServicesService {
-  constructor(private readonly servicesDao: ServicesDao) {} //  // TODO: 依存するDAOに置き換える
+  constructor(private readonly servicesDao: ServicesDao) {}
 
-  // 登録・更新系メソッドのテンプレート
   /**
    * サービス登録
    * @param prismaTx トランザクション
    * @param userId トランザクション実行者のID
    * @param txDateTime トランザクション開始日時
    * @param body ServicesCreateRequestDto
-   * @returns ServiceModel
+   * @returns 登録したサービスのID
    */
   async createWithTx(
     prismaTx: PrismaTransaction,
@@ -26,7 +25,7 @@ export class ServicesService {
     txDateTime: Date,
     body: ServicesCreateRequestDto,
   ): Promise<string> {
-    // 1. RequestDtoからDB登録データ (DAO) へ詰め替え (RequestDto -> TableDto) schema.prismaの型情報、制約を利用する。
+    // 1. RequestDtoからDB登録データ (DAO) へ詰め替え
     const createServiceDto: CreateServicesDto = {
       name: body.name,
       description: body.description,
@@ -37,7 +36,7 @@ export class ServicesService {
       isDeleted: false,
     };
 
-    // 2. DAOのtx対応メソッドを呼び出し、DB登録を実行 (prismaTxを渡す)
+    // 2. DAOのtx対応メソッドを呼び出し、DB登録を実行
     const createdService = await this.servicesDao.createServices(
       prismaTx,
       createServiceDto,

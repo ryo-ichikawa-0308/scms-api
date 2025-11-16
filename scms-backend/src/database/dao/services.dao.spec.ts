@@ -4,14 +4,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ServicesDao } from 'src/database/dao/services.dao';
 import { PrismaService } from 'src/prisma/prisma.service';
-import {
-  SelectServicesDto,
-  CreateServicesDto,
-} from 'src/database/dto/services.dto';
+import { CreateServicesDto } from 'src/database/dto/services.dto';
 import { Services } from '@prisma/client';
 import {
   InternalServerErrorException,
-  NotFoundException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
@@ -30,6 +26,7 @@ const mockPrismaService = {
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    findFirst: jest.fn(),
   },
 };
 
@@ -82,116 +79,43 @@ describe('ServicesDaoのテスト', () => {
     dao = module.get<ServicesDao>(ServicesDao);
     jest.clearAllMocks();
   });
-
-  describe('selectServicesのテスト', () => {
-    const selectDto = new SelectServicesDto();
-    selectDto.name = 'Test';
+  describe('selectServicesByNameのテスト', () => {
+    const NAME_TO_SEARCH = mockService.name;
 
     describe('正常系', () => {
-      test('1件の結果が返る場合', async () => {
-        const result: Services[] = [{ ...mockService, name: 'Test Service 1' }];
-        jest.spyOn(mockServicesModel, 'findMany').mockResolvedValueOnce(result);
+      test('サービス名でレコードが取得できる場合', async () => {
+        jest
+          .spyOn(mockServicesModel, 'findFirst')
+          .mockResolvedValueOnce(mockService);
 
-        const services = await dao.selectServices(selectDto);
+        const result = await dao.selectServicesByName(NAME_TO_SEARCH);
 
-        expect(services).toEqual(result);
-        expect(mockServicesModel.findMany).toHaveBeenCalledWith({
-          where: { isDeleted: false, name: { contains: 'Test' } },
-          skip: undefined,
-          take: undefined,
-          orderBy: {},
+        expect(result).toEqual(mockService);
+        // PrismaのfindFirstが正しいwhere句で呼ばれたことを確認
+        expect(mockServicesModel.findFirst).toHaveBeenCalledWith({
+          where: {
+            name: NAME_TO_SEARCH,
+            isDeleted: false,
+          },
         });
       });
-      test('複数件の結果が返る場合', async () => {
-        const result: Services[] = [
-          { ...mockService, name: 'Service A' },
-          { ...mockService, id: '2', name: 'Service B' },
-        ];
-        jest.spyOn(mockServicesModel, 'findMany').mockResolvedValueOnce(result);
-        selectDto.limit = 10;
-        selectDto.sortBy = 'name';
-        selectDto.sortOrder = 'asc';
 
-        const services = await dao.selectServices(selectDto);
+      test('サービス名に一致するレコードが見つからない場合、nullが返る', async () => {
+        jest.spyOn(mockServicesModel, 'findFirst').mockResolvedValueOnce(null);
 
-        expect(services).toEqual(result);
-        expect(mockServicesModel.findMany).toHaveBeenCalledWith({
-          where: { isDeleted: false, name: { contains: 'Test' } },
-          skip: undefined,
-          take: 10,
-          orderBy: { name: 'asc' },
-        });
-        selectDto.limit = undefined;
-        selectDto.sortBy = undefined;
-        selectDto.sortOrder = undefined;
-      });
-      test('0件の結果が返る場合', async () => {
-        const result: Services[] = [];
-        jest.spyOn(mockServicesModel, 'findMany').mockResolvedValueOnce(result);
+        const result = await dao.selectServicesByName('Non-Existent Service');
 
-        const services = await dao.selectServices(new SelectServicesDto());
-
-        expect(services).toEqual([]);
-        expect(mockServicesModel.findMany).toHaveBeenCalledWith({
-          where: { isDeleted: false },
-          skip: undefined,
-          take: undefined,
-          orderBy: {},
-        });
+        expect(result).toBeNull();
       });
     });
 
     describe('異常系', () => {
-      test('DB接続エラーが発生した場合', async () => {
+      test('DB接続エラーが発生した場合、InternalServerErrorExceptionがスローされる', async () => {
         jest
-          .spyOn(mockServicesModel, 'findMany')
-          .mockRejectedValueOnce(new Error('DB Error'));
+          .spyOn(mockServicesModel, 'findFirst')
+          .mockRejectedValueOnce(new Error('DB connection failed'));
 
-        await expect(dao.selectServices(selectDto)).rejects.toThrow(
-          InternalServerErrorException,
-        );
-      });
-    });
-  });
-
-  describe('countServicesのテスト', () => {
-    const selectDto = new SelectServicesDto();
-    selectDto.price = 1000;
-
-    describe('正常系', () => {
-      test('1が返る場合', async () => {
-        jest.spyOn(mockServicesModel, 'count').mockResolvedValueOnce(1);
-
-        const count = await dao.countServices(selectDto);
-
-        expect(count).toBe(1);
-        expect(mockServicesModel.count).toHaveBeenCalledWith({
-          where: { isDeleted: false, price: 1000 },
-        });
-      });
-      test('2以上が返る場合', async () => {
-        jest.spyOn(mockServicesModel, 'count').mockResolvedValueOnce(5);
-
-        const count = await dao.countServices(selectDto);
-
-        expect(count).toBe(5);
-      });
-      test('0が返る場合', async () => {
-        jest.spyOn(mockServicesModel, 'count').mockResolvedValueOnce(0);
-
-        const count = await dao.countServices(selectDto);
-
-        expect(count).toBe(0);
-      });
-    });
-
-    describe('異常系', () => {
-      test('DB接続エラーが発生した場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'count')
-          .mockRejectedValueOnce(new Error('DB Error'));
-
-        await expect(dao.countServices(selectDto)).rejects.toThrow(
+        await expect(dao.selectServicesByName(NAME_TO_SEARCH)).rejects.toThrow(
           InternalServerErrorException,
         );
       });
@@ -258,178 +182,6 @@ describe('ServicesDaoのテスト', () => {
 
         await expect(
           dao.createServices(mockPrismaTx, createDto),
-        ).rejects.toThrow(InternalServerErrorException);
-      });
-    });
-  });
-
-  describe('updateServicesのテスト', () => {
-    const updateData: Services = {
-      ...mockService,
-      price: 3000,
-      updatedAt: new Date(),
-      updatedBy: 'updater-id',
-    };
-
-    describe('正常系', () => {
-      test('正常に更新ができる場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'update')
-          .mockResolvedValueOnce(updateData);
-
-        const service = await dao.updateServices(mockPrismaTx, updateData);
-
-        expect(service).toEqual(updateData);
-        expect(mockServicesModel.update).toHaveBeenCalledWith({
-          where: { id: updateData.id },
-          data: expect.objectContaining({ price: updateData.price }),
-        });
-      });
-    });
-
-    describe('異常系', () => {
-      test('一意制約違反が発生した場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'update')
-          .mockRejectedValueOnce(mockPrismaError('P2002'));
-
-        await expect(
-          dao.updateServices(mockPrismaTx, updateData),
-        ).rejects.toThrow(ConflictException);
-      });
-      test('外部キー違反が発生した場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'update')
-          .mockRejectedValueOnce(mockPrismaError('P2003'));
-
-        await expect(
-          dao.updateServices(mockPrismaTx, updateData),
-        ).rejects.toThrow(BadRequestException);
-      });
-      test('更新レコードが見つからない場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'update')
-          .mockRejectedValueOnce(mockPrismaError('P2025'));
-
-        await expect(
-          dao.updateServices(mockPrismaTx, updateData),
-        ).rejects.toThrow(NotFoundException);
-      });
-      test('DB接続エラーが発生した場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'update')
-          .mockRejectedValueOnce(new Error('DB Error'));
-
-        await expect(
-          dao.updateServices(mockPrismaTx, updateData),
-        ).rejects.toThrow(InternalServerErrorException);
-      });
-    });
-  });
-
-  describe('softDeleteServicesのテスト', () => {
-    const deleteId = MOCK_UUID;
-    const updatedAt = new Date();
-    const updatedBy = 'deleter-id';
-    const softDeletedService: Services = {
-      ...mockService,
-      id: deleteId,
-      isDeleted: true,
-      updatedAt,
-      updatedBy,
-    };
-
-    describe('正常系', () => {
-      test('対象レコードが論理削除されていない場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'update')
-          .mockResolvedValueOnce(softDeletedService);
-
-        const service = await dao.softDeleteServices(
-          mockPrismaTx,
-          deleteId,
-          updatedAt,
-          updatedBy,
-        );
-
-        expect(service).toEqual(softDeletedService);
-        expect(mockServicesModel.update).toHaveBeenCalledWith({
-          where: { id: deleteId },
-          data: {
-            isDeleted: true,
-            updatedAt,
-            updatedBy,
-          },
-        });
-      });
-    });
-
-    describe('異常系', () => {
-      test('論理削除レコードが見つからない場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'update')
-          .mockRejectedValueOnce(mockPrismaError('P2025'));
-
-        await expect(
-          dao.softDeleteServices(mockPrismaTx, deleteId, updatedAt, updatedBy),
-        ).rejects.toThrow(NotFoundException);
-      });
-      test('DB接続エラーが発生した場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'update')
-          .mockRejectedValueOnce(new Error('DB Error'));
-
-        await expect(
-          dao.softDeleteServices(mockPrismaTx, deleteId, updatedAt, updatedBy),
-        ).rejects.toThrow(InternalServerErrorException);
-      });
-    });
-  });
-
-  describe('hardDeleteServicesのテスト', () => {
-    const deleteId = MOCK_UUID;
-
-    describe('正常系', () => {
-      test('正常に物理削除ができる場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'delete')
-          .mockResolvedValueOnce(mockService);
-
-        const service = await dao.hardDeleteServices(mockPrismaTx, deleteId);
-
-        expect(service).toEqual(mockService);
-        expect(mockServicesModel.delete).toHaveBeenCalledWith({
-          where: { id: deleteId },
-        });
-      });
-    });
-
-    describe('異常系', () => {
-      test('物理削除レコードが見つからない場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'delete')
-          .mockRejectedValueOnce(mockPrismaError('P2025'));
-
-        await expect(
-          dao.hardDeleteServices(mockPrismaTx, deleteId),
-        ).rejects.toThrow(NotFoundException);
-      });
-      test('外部キー違反が発生した場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'delete')
-          .mockRejectedValueOnce(mockPrismaError('P2003'));
-
-        await expect(
-          dao.hardDeleteServices(mockPrismaTx, deleteId),
-        ).rejects.toThrow(BadRequestException);
-      });
-      test('DB接続エラーが発生した場合', async () => {
-        jest
-          .spyOn(mockServicesModel, 'delete')
-          .mockRejectedValueOnce(new Error('DB Error'));
-
-        await expect(
-          dao.hardDeleteServices(mockPrismaTx, deleteId),
         ).rejects.toThrow(InternalServerErrorException);
       });
     });

@@ -16,7 +16,7 @@ import {
   CreateContractsDto,
   ContractsDetailDto,
 } from 'src/database/dto/contracts.dto';
-import { UserServices } from '@prisma/client';
+import { Contracts, UserServices } from '@prisma/client';
 import { ContractsResponseContractItemDto } from 'src/domain/contracts/dto/contracts-response-contract-item.dto';
 import { CommonService } from '../common/common.service';
 
@@ -31,7 +31,6 @@ export class ContractsService {
     private readonly userServicesDao: UserServicesDao,
   ) {}
 
-  // 契約一覧 (POST/list)
   /**
    * 契約一覧
    * @param body ContractsListRequestDto
@@ -74,13 +73,12 @@ export class ContractsService {
       body.limit,
     );
 
-    return {
+    return new ContractsListResponseDto({
       ...paging,
       contracts: resContracts,
-    } as ContractsListResponseDto;
+    });
   }
 
-  // 契約詳細 (GET/detail)
   /**
    * 契約詳細
    * @param id 契約ID
@@ -91,19 +89,18 @@ export class ContractsService {
     const contract = await this.contractsDao.selectContractsById(id);
     if (!contract) throw new NotFoundException('該当データが見つかりません');
 
-    const response: ContractsDetailResponseDto = {
+    const response = new ContractsDetailResponseDto({
       id: contract.id,
       usersId: contract.usersId,
       userServicesId: contract.userServicesId,
       quantity: contract.quantity,
       name: contract.userServices.services.name,
       unit: contract.userServices.services.unit,
-    };
+    });
 
     return response;
   }
 
-  // サービス契約 (POST/create) - トランザクション対応メソッド
   /**
    * サービス契約 (トランザクション内実行)
    * @param prismaTx トランザクション
@@ -161,7 +158,6 @@ export class ContractsService {
     return contract.id;
   }
 
-  // サービス解約 (PATCH/cancel) - トランザクション対応メソッド
   /**
    * サービス解約 (トランザクション内実行)
    * @param prismaTx トランザクション
@@ -195,7 +191,15 @@ export class ContractsService {
       updatedAt: txDateTime,
       updatedBy: userId,
     };
+    const contractDto: Contracts = {
+      ...contract,
+      quantity: 0,
+      updatedAt: txDateTime,
+      updatedBy: userId,
+    };
+    await this.contractsDao.updateContracts(prismaTx, contractDto);
     await this.userServicesDao.updateUserServices(prismaTx, userServiceDto);
+    // 契約データを論理削除
     await this.contractsDao.softDeleteContracts(
       prismaTx,
       id,
