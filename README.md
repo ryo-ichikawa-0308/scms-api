@@ -1,8 +1,6 @@
-# Simple contract management system API
+# Simple contract management system ドキュメント統制・AIガバナンス実証API
 
-AIガバナンス実証サンプルAPI
-
-本APIは、[simple-contract-management-system](https://github.com/ryo-ichikawa-0308/simple-contract-management-system)とそのサブモジュール群で提示するドキュメント統制・AIガバナンスの実証サンプルである。
+本APIは、[simple-contract-management-system](https://github.com/ryo-ichikawa-0308/simple-contract-management-system)とそのサブモジュール群で提示するドキュメント統制・AIガバナンスの実証サンプルである。ドキュメント統制・AIガバナンスに従って実装したAPIのソースコードを資産に含む。
 
 ## 設計と実装
 
@@ -33,7 +31,7 @@ graph TD
     PRISMA --> API_PROMPT{{APIコード<br>生成プロンプト}}
     API_JSON --> API_PROMPT
     API_PROMPT --> API_SKELTON(APIスケルトンコード)
-    DAO --> PROGRAMER[人手実装・調整]
+    DAO --> PROGRAMER[ビジネスロジック実装<br>テストコード実装<br>コード整理・調整]
     API_SKELTON --> PROGRAMER
     PROGRAMER --> API(APIコード成果物)
 ```
