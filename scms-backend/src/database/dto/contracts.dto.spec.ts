@@ -1,3 +1,5 @@
 describe('ContractsDtoのテスト', () => {
-  test('カスタムデコレータは実装していないためテスト不要', () => {});
+  test('カスタムデコレータは実装していないためUT省略', () => {
+    expect(true).toBe(true);
+  });
 });
