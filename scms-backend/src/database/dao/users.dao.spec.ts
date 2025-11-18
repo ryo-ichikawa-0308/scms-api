@@ -193,6 +193,7 @@ describe('UsersDaoのテスト', () => {
 
   describe('createUsersのテスト', () => {
     const createDto: CreateUsersDto = {
+      id: 'new-id',
       name: 'New User',
       email: 'new@example.com',
       password: 'newpassword',

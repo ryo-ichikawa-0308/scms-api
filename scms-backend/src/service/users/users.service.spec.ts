@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { InternalServerErrorException } from '@nestjs/common';
+import {
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UsersDao } from 'src/database/dao/users.dao';
 import { AuthService } from '../auth/auth.service';
@@ -159,24 +162,27 @@ describe('UsersService (Service) Test', () => {
   describe('isEmailExists', () => {
     const testEmail = 'check@test.com';
     describe('正常系', () => {
-      it('メールアドレスに紐づくユーザーが存在する場合', async () => {
+      it('メールアドレスに紐づくユーザーが存在する場合、例外送出すること', async () => {
         mockUsersDao.selectUsersByEmail.mockResolvedValue(
           mockCreatedUserRecord,
         );
-
-        const result = await service.isEmailExists(testEmail);
-
-        expect(usersDao.selectUsersByEmail).toHaveBeenCalledWith(testEmail);
-        expect(result).toBe(true);
+        try {
+          await service.isValidEmail(testEmail);
+          fail('例外検出できなかったのでテスト失敗');
+        } catch (e) {
+          expect(usersDao.selectUsersByEmail).toHaveBeenCalledWith(testEmail);
+          expect(e).toBeInstanceOf(ConflictException);
+          expect((e as ConflictException).message).toBe(
+            'このユーザーは登録できません',
+          );
+        }
       });
 
-      it('メールアドレスに紐づくユーザーが存在しない場合', async () => {
+      it('メールアドレスに紐づくユーザーが存在しない場合、例外送出しないこと', async () => {
         mockUsersDao.selectUsersByEmail.mockResolvedValue(null);
-
-        const result = await service.isEmailExists(testEmail);
-
-        expect(usersDao.selectUsersByEmail).toHaveBeenCalledWith(testEmail);
-        expect(result).toBe(false);
+        await expect(service.isValidEmail(testEmail)).resolves.not.toThrow(
+          ConflictException,
+        );
       });
     });
 
@@ -185,7 +191,7 @@ describe('UsersService (Service) Test', () => {
         const mockError = new Error('DAO connection error');
         mockUsersDao.selectUsersByEmail.mockRejectedValue(mockError);
 
-        await expect(service.isEmailExists(testEmail)).rejects.toThrow(
+        await expect(service.isValidEmail(testEmail)).rejects.toThrow(
           mockError,
         );
       });

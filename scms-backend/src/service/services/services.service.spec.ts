@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { InternalServerErrorException } from '@nestjs/common';
+import {
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { ServicesDao } from 'src/database/dao/services.dao';
 import { ServicesCreateRequestDto } from 'src/domain/services/dto/services-create-request.dto';
@@ -128,26 +131,32 @@ describe('ServicesService (Service) Test', () => {
     });
   });
 
-  describe('isServiceExists', () => {
+  describe('isValidService', () => {
     const testServiceName = 'Existing Service';
 
     describe('正常系', () => {
-      it('サービスが存在することを確認する', async () => {
+      it('サービスが存在する場合、例外送出すること', async () => {
         dao.selectServicesByName.mockResolvedValue(mockCreatedServiceRecord);
-
-        const result = await service.isServiceExists(testServiceName);
-
-        expect(dao.selectServicesByName).toHaveBeenCalledWith(testServiceName);
-        expect(result).toBe(true);
+        try {
+          await service.isValidService(testServiceName);
+          fail('例外検出できなかったのでテスト失敗');
+        } catch (e) {
+          expect(dao.selectServicesByName).toHaveBeenCalledWith(
+            testServiceName,
+          );
+          expect(e).toBeInstanceOf(ConflictException);
+          expect((e as ConflictException).message).toBe(
+            'このサービスは登録できません',
+          );
+        }
       });
 
-      it('サービスが存在しないことを確認する', async () => {
+      it('サービスが存在しない場合、例外送出しないこと', async () => {
         dao.selectServicesByName.mockResolvedValue(null);
-
-        const result = await service.isServiceExists(testServiceName);
-
+        await expect(
+          service.isValidService(testServiceName),
+        ).resolves.not.toThrow(ConflictException);
         expect(dao.selectServicesByName).toHaveBeenCalledWith(testServiceName);
-        expect(result).toBe(false);
       });
     });
 
@@ -156,7 +165,7 @@ describe('ServicesService (Service) Test', () => {
         const mockError = new Error('DAO connection error');
         dao.selectServicesByName.mockRejectedValue(mockError);
 
-        await expect(service.isServiceExists(testServiceName)).rejects.toThrow(
+        await expect(service.isValidService(testServiceName)).rejects.toThrow(
           mockError,
         );
       });

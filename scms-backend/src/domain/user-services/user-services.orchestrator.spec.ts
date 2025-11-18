@@ -27,7 +27,7 @@ const MOCK_REQUEST_BODY: UserServicesCreateRequestDto = {
 
 // 依存関係のモック
 const mockUserServicesService = {
-  isUserServiceExists: jest.fn(),
+  isValidUserService: jest.fn(),
   createWithTx: jest.fn(),
 };
 
@@ -66,7 +66,7 @@ describe('UserServicesOrchestrator (Orchestrator) Test', () => {
     jest.clearAllMocks();
     jest.spyOn(global, 'Date').mockImplementation(() => MOCK_TX_DATE as any);
 
-    userServicesService.isUserServiceExists.mockResolvedValue(false);
+    userServicesService.isValidUserService.mockResolvedValue(false);
     userServicesService.createWithTx.mockResolvedValue(MOCK_CREATED_ID);
   });
 
@@ -86,13 +86,11 @@ describe('UserServicesOrchestrator (Orchestrator) Test', () => {
           MOCK_AUTH_USER_ID,
         );
 
-        expect(userServicesService.isUserServiceExists).toHaveBeenCalledWith(
+        expect(userServicesService.isValidUserService).toHaveBeenCalledWith(
           MOCK_REQUEST_BODY.userId,
           MOCK_REQUEST_BODY.serviceId,
         );
-        expect(userServicesService.isUserServiceExists).toHaveBeenCalledTimes(
-          1,
-        );
+        expect(userServicesService.isValidUserService).toHaveBeenCalledTimes(1);
 
         expect(prismaTransaction.$transaction).toHaveBeenCalledTimes(1);
 
@@ -113,14 +111,17 @@ describe('UserServicesOrchestrator (Orchestrator) Test', () => {
 
     describe('異常系', () => {
       it('ユーザー提供サービスが既に登録済みの場合', async () => {
-        userServicesService.isUserServiceExists.mockResolvedValue(true);
+        const errorMessage = 'このサービスは登録できません';
+        userServicesService.isValidUserService.mockRejectedValue(
+          new ConflictException(errorMessage),
+        );
 
         await expect(
           orchestrator.create(MOCK_REQUEST_BODY, MOCK_AUTH_USER_ID),
         ).rejects.toThrow(ConflictException);
         await expect(
           orchestrator.create(MOCK_REQUEST_BODY, MOCK_AUTH_USER_ID),
-        ).rejects.toThrow('このサービスは登録できません');
+        ).rejects.toThrow(errorMessage);
 
         expect(prismaTransaction.$transaction).not.toHaveBeenCalled();
         expect(userServicesService.createWithTx).not.toHaveBeenCalled();
