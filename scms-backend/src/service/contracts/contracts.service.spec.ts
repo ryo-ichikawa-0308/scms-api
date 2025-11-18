@@ -462,20 +462,22 @@ describe('ContractsService (Service) Test', () => {
     };
 
     describe('正常系', () => {
-      it('should return true if the service is found and stock is sufficient', async () => {
-        // Setup: 在庫あり (100)
+      it('在庫が十分なサービスが存在する場合', async () => {
+        // 在庫あり (100)
         userServicesDao.selectUserServicesById.mockResolvedValue(
           mockUserServiceRecord,
         );
 
-        // Execute
-        const result = await service.isValidContract(mockCreateRequest);
+        await expect(
+          service.isValidContract(mockCreateRequest),
+        ).resolves.not.toThrow(NotFoundException);
+        await expect(
+          service.isValidContract(mockCreateRequest),
+        ).resolves.not.toThrow(BadRequestException);
 
-        // Assert
         expect(userServicesDao.selectUserServicesById).toHaveBeenCalledWith(
           MOCK_USER_SERVICE_ID,
         );
-        expect(result).toBe(true);
       });
     });
 
@@ -517,16 +519,15 @@ describe('ContractsService (Service) Test', () => {
         userServicesDao.selectUserServicesById.mockResolvedValue(
           mockUserServiceRecord,
         );
-
-        const result = await service.isValidCancel(MOCK_CONTRACT_ID);
-
+        await expect(
+          service.isValidCancel(MOCK_CONTRACT_ID),
+        ).resolves.not.toThrow(NotFoundException);
         expect(contractsDao.selectContractsById).toHaveBeenCalledWith(
           MOCK_CONTRACT_ID,
         );
         expect(userServicesDao.selectUserServicesById).toHaveBeenCalledWith(
           mockContractRecord.userServicesId,
         );
-        expect(result).toBe(true);
       });
     });
 

@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, Inject } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import {
   PRISMA_TRANSACTION,
   type PrismaTransaction,
@@ -25,10 +25,7 @@ export class UsersOrchestrator {
    */
   async create(body: UsersCreateRequestDto): Promise<string> {
     // 1. 項目間関連チェック
-    const isEmailExists = await this.usersService.isEmailExists(body.email);
-    if (isEmailExists) {
-      throw new ConflictException('このユーザーは登録できません');
-    }
+    await this.usersService.isValidEmail(body.email);
 
     // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, bodyを渡す
     const txDateTime = new Date();

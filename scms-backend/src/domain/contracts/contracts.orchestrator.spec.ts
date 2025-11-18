@@ -123,7 +123,7 @@ describe('ContractsOrchestrator (Orchestrator) Test', () => {
 
         try {
           await orchestrator.create(MOCK_CREATE_REQUEST, MOCK_AUTH_USER_ID);
-          fail('Expected an exception, but none was thrown.');
+          fail('例外検出できなかったのでテスト失敗');
         } catch (error) {
           expect(error).toBeInstanceOf(NotFoundException);
           expect((error as NotFoundException).message).toBe(errorMessage);
@@ -183,7 +183,7 @@ describe('ContractsOrchestrator (Orchestrator) Test', () => {
 
         try {
           await orchestrator.cancel(MOCK_CANCEL_PATH_PARAMS, MOCK_AUTH_USER_ID);
-          fail('Expected an exception, but none was thrown.');
+          fail('例外検出できなかったのでテスト失敗');
         } catch (error) {
           expect(error).toBeInstanceOf(NotFoundException);
           expect((error as NotFoundException).message).toBe(errorMessage);
@@ -201,7 +201,7 @@ describe('ContractsOrchestrator (Orchestrator) Test', () => {
 
         try {
           await orchestrator.cancel(MOCK_CANCEL_PATH_PARAMS, MOCK_AUTH_USER_ID);
-          fail('Expected an exception, but none was thrown.');
+          fail('例外検出できなかったのでテスト失敗');
         } catch (error) {
           expect(error).toBeInstanceOf(InternalServerErrorException);
           expect((error as InternalServerErrorException).message).toBe(

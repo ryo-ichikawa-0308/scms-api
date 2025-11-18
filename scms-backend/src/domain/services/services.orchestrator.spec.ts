@@ -28,7 +28,7 @@ const MOCK_REQUEST_BODY: ServicesCreateRequestDto = {
 
 // --- 依存オブジェクトのモック定義 ---
 const mockServicesService = {
-  isServiceExists: jest.fn(),
+  isValidService: jest.fn(),
   createWithTx: jest.fn(),
 };
 
@@ -65,7 +65,7 @@ describe('ServicesOrchestrator (Orchestrator) Test', () => {
     jest.clearAllMocks();
     jest.spyOn(global, 'Date').mockImplementation(() => MOCK_TX_DATE as any);
 
-    servicesService.isServiceExists.mockResolvedValue(false);
+    servicesService.isValidService.mockResolvedValue(false);
     servicesService.createWithTx.mockResolvedValue(MOCK_CREATED_ID);
   });
 
@@ -85,10 +85,10 @@ describe('ServicesOrchestrator (Orchestrator) Test', () => {
           MOCK_AUTH_USER_ID,
         );
 
-        expect(servicesService.isServiceExists).toHaveBeenCalledWith(
+        expect(servicesService.isValidService).toHaveBeenCalledWith(
           MOCK_REQUEST_BODY.name,
         );
-        expect(servicesService.isServiceExists).toHaveBeenCalledTimes(1);
+        expect(servicesService.isValidService).toHaveBeenCalledTimes(1);
 
         expect(prismaTransaction.$transaction).toHaveBeenCalledTimes(1);
 
@@ -107,7 +107,9 @@ describe('ServicesOrchestrator (Orchestrator) Test', () => {
     describe('異常系', () => {
       it('サービス名被りの場合', async () => {
         const errorMessage = 'このサービスは登録できません';
-        servicesService.isServiceExists.mockResolvedValue(true);
+        servicesService.isValidService.mockRejectedValue(
+          new ConflictException(errorMessage),
+        );
 
         try {
           await orchestrator.create(MOCK_REQUEST_BODY, MOCK_AUTH_USER_ID);
