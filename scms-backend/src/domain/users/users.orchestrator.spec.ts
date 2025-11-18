@@ -28,7 +28,7 @@ const mockRequestDto: UsersCreateRequestDto = {
 
 // UsersServiceのモック
 const mockUsersService = {
-  isEmailExists: jest.fn(),
+  isValidEmail: jest.fn(),
   createWithTx: jest.fn(),
 };
 
@@ -67,7 +67,7 @@ describe('UsersOrchestrator (Orchestrator) Test', () => {
     jest.clearAllMocks();
 
     // デフォルトのモック設定
-    service.isEmailExists.mockResolvedValue(false);
+    service.isValidEmail.mockResolvedValue(false);
     service.createWithTx.mockResolvedValue(MOCK_CREATED_ID);
     randomUUIDMock.mockReturnValue(MOCK_NEW_USER_ID);
   });
@@ -79,7 +79,7 @@ describe('UsersOrchestrator (Orchestrator) Test', () => {
   describe('create - 正常系', () => {
     it('サービスクラスのユーザー作成が実行されてユーザーIDが返ること', async () => {
       const result = await orchestrator.create(mockRequestDto);
-      expect(service.isEmailExists).toHaveBeenCalledWith(mockRequestDto.email);
+      expect(service.isValidEmail).toHaveBeenCalledWith(mockRequestDto.email);
       expect(prismaTx.$transaction).toHaveBeenCalled();
       expect(randomUUIDMock).toHaveBeenCalled();
 
@@ -100,16 +100,19 @@ describe('UsersOrchestrator (Orchestrator) Test', () => {
 
   describe('create - 異常系', () => {
     it('ユーザーのメールアドレスが登録済の場合', async () => {
-      service.isEmailExists.mockResolvedValue(true);
+      const errorMessage = 'このユーザーは登録できません';
+      service.isValidEmail.mockRejectedValue(
+        new ConflictException(errorMessage),
+      );
       await expect(orchestrator.create(mockRequestDto)).rejects.toThrow(
         ConflictException,
       );
 
       await expect(orchestrator.create(mockRequestDto)).rejects.toThrow(
-        'このユーザーは登録できません',
+        errorMessage,
       );
 
-      expect(service.isEmailExists).toHaveBeenCalledWith(mockRequestDto.email);
+      expect(service.isValidEmail).toHaveBeenCalledWith(mockRequestDto.email);
 
       expect(prismaTx.$transaction).not.toHaveBeenCalled();
       expect(service.createWithTx).not.toHaveBeenCalled();

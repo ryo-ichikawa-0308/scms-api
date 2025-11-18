@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -144,14 +145,12 @@ export class UserServicesService {
    * サービス被りを確認する
    * @param userId ユーザーID
    * @param serviceId サービスID
-   * @returns 同一ユーザー提供サービスが存在したらtrue
    */
-  async isUserServiceExists(
-    userId: string,
-    serviceId: string,
-  ): Promise<boolean> {
+  async isValidUserService(userId: string, serviceId: string): Promise<void> {
     const userServicesExists =
       await this.userServicesDao.selectUserServicesByIds(userId, serviceId);
-    return userServicesExists !== null;
+    if (userServicesExists) {
+      throw new ConflictException('このユーザー提供サービスは登録できません');
+    }
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaTransaction } from 'src/prisma/prisma.type';
 import { UsersDao } from 'src/database/dao/users.dao';
 import { UsersCreateRequestDto } from '../../domain/users/dto/users-create-request.dto';
@@ -55,10 +59,11 @@ export class UsersService {
   /**
    * メールアドレスが登録済みか検査する
    * @param email 検査対象のメールアドレス
-   * @returns 登録済みの場合true
    */
-  async isEmailExists(email: string): Promise<boolean> {
-    const existedUsers = await this.usersDao.selectUsersByEmail(email);
-    return existedUsers !== null;
+  async isValidEmail(email: string): Promise<void> {
+    const isUserExists = await this.usersDao.selectUsersByEmail(email);
+    if (isUserExists) {
+      throw new ConflictException('このユーザーは登録できません');
+    }
   }
 }

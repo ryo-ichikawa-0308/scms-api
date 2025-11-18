@@ -211,9 +211,8 @@ export class ContractsService {
   /**
    * 契約対象のサービスと在庫があることを確認する。
    * @param body ContractsCancelRequestDto
-   * @returns 契約可能な状態であればtrue
    */
-  async isValidContract(body: ContractsCreateRequestDto): Promise<boolean> {
+  async isValidContract(body: ContractsCreateRequestDto): Promise<void> {
     const userService = await this.userServicesDao.selectUserServicesById(
       body.userServiceId,
     );
@@ -223,15 +222,13 @@ export class ContractsService {
     if (userService.stock < body.quantity) {
       throw new BadRequestException('在庫が足りません');
     }
-    return true;
   }
 
   /**
    * 解約対象の契約とサービスがあることを確認する。
    * @param id 解約するサービスID
-   * @returns 解約可能な状態であればtrue
    */
-  async isValidCancel(id: string): Promise<boolean> {
+  async isValidCancel(id: string): Promise<void> {
     const contract = await this.contractsDao.selectContractsById(id);
     if (!contract) {
       throw new NotFoundException('解約対象の契約が見つかりません');
@@ -242,6 +239,5 @@ export class ContractsService {
     if (!userService) {
       throw new NotFoundException('解約対象のサービスが見つかりません');
     }
-    return true;
   }
 }

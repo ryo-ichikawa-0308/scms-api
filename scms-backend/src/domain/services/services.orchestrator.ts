@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ServicesCreateRequestDto } from './dto/services-create-request.dto';
 import {
   PRISMA_TRANSACTION,
@@ -29,12 +29,7 @@ export class ServicesOrchestrator {
     userId: string,
   ): Promise<string> {
     // 1. 項目間関連チェック(Service層のメソッドを呼び出す)
-    const isServiceExists = await this.servicesService.isServiceExists(
-      body.name,
-    );
-    if (isServiceExists) {
-      throw new ConflictException('このサービスは登録できません');
-    }
+    await this.servicesService.isValidService(body.name);
 
     // 2. Service層のトランザクション対応メソッドを呼び出し、prismaTx, userId, txDateTime, 各種dtoを渡す
     const txDateTime = new Date();

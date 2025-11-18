@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ServicesDao } from 'src/database/dao/services.dao';
 import { CreateServicesDto } from 'src/database/dto/services.dto';
 import { ServicesCreateRequestDto } from 'src/domain/services/dto/services-create-request.dto';
@@ -53,10 +57,11 @@ export class ServicesService {
   /**
    * サービス名被りを確認する
    * @param name サービス名
-   * @returns 同名のサービスが存在したらtrue
    */
-  async isServiceExists(name: string): Promise<boolean> {
+  async isValidService(name: string): Promise<void> {
     const servicesExists = await this.servicesDao.selectServicesByName(name);
-    return servicesExists !== null;
+    if (servicesExists) {
+      throw new ConflictException('このサービスは登録できません');
+    }
   }
 }

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
+  ConflictException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
@@ -264,34 +265,32 @@ describe('UserServicesService (Service) Test', () => {
 
   describe('isUserServiceExists', () => {
     describe('正常系', () => {
-      it('ユーザー提供サービスが存在することを確認する', async () => {
+      it('ユーザー提供サービスが存在する場合、例外送出すること', async () => {
         dao.selectUserServicesByIds.mockResolvedValue(mockDetailDto);
-
-        const result = await service.isUserServiceExists(
-          MOCK_USER_ID,
-          MOCK_SERVICE_ID,
-        );
-
-        expect(dao.selectUserServicesByIds).toHaveBeenCalledWith(
-          MOCK_USER_ID,
-          MOCK_SERVICE_ID,
-        );
-        expect(result).toBe(true);
+        try {
+          await service.isValidUserService(MOCK_USER_ID, MOCK_SERVICE_ID);
+          fail('例外検出できなかったのでテスト失敗');
+        } catch (e) {
+          expect(dao.selectUserServicesByIds).toHaveBeenCalledWith(
+            MOCK_USER_ID,
+            MOCK_SERVICE_ID,
+          );
+          expect(e).toBeInstanceOf(ConflictException);
+          expect((e as ConflictException).message).toBe(
+            'このユーザー提供サービスは登録できません',
+          );
+        }
       });
 
-      it('ユーザー提供サービスが存在しないことを確認する', async () => {
+      it('ユーザー提供サービスが存在しない場合、例外送出しないこと', async () => {
         dao.selectUserServicesByIds.mockResolvedValue(null);
-
-        const result = await service.isUserServiceExists(
-          MOCK_USER_ID,
-          MOCK_SERVICE_ID,
-        );
-
+        await expect(
+          service.isValidUserService(MOCK_USER_ID, MOCK_SERVICE_ID),
+        ).resolves.not.toThrow(ConflictException);
         expect(dao.selectUserServicesByIds).toHaveBeenCalledWith(
           MOCK_USER_ID,
           MOCK_SERVICE_ID,
         );
-        expect(result).toBe(false);
       });
     });
 
@@ -300,9 +299,8 @@ describe('UserServicesService (Service) Test', () => {
         const mockError = new Error('DB Check error');
         dao.selectUserServicesByIds.mockRejectedValue(mockError);
 
-        // Execute & Assert
         await expect(
-          service.isUserServiceExists(MOCK_USER_ID, MOCK_SERVICE_ID),
+          service.isValidUserService(MOCK_USER_ID, MOCK_SERVICE_ID),
         ).rejects.toThrow(mockError);
       });
     });
