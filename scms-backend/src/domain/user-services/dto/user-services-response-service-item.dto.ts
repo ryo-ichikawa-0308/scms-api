@@ -9,10 +9,10 @@ export class UserServicesResponseServiceItemDto {
   @IsString()
   id?: string;
 
-  /** ユーザーID */
+  /** ユーザー名 */
   @IsOptional()
   @IsString()
-  usersId?: string;
+  usersName?: string;
 
   /** サービスID */
   @IsOptional()

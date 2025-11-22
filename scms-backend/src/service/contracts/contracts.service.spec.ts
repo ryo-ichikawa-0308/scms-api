@@ -54,6 +54,9 @@ const mockContractDetailDto: ContractsDetailDto = {
       name: 'Mock Service Name',
       unit: '時間',
     },
+    users: {
+      name: '提供者名',
+    },
   },
 } as unknown as ContractsDetailDto;
 

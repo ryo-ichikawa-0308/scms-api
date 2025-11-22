@@ -41,6 +41,9 @@ const mockDetailDto: UserServicesDetailDto = {
     unit: '回',
     isDeleted: false,
   },
+  users: {
+    name: '提供者名',
+  },
 } as unknown as UserServicesDetailDto;
 
 const mockPaging = {

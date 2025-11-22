@@ -14,7 +14,6 @@ import { UserServicesDao } from 'src/database/dao/user_services.dao';
 import {
   SelectContractsDto,
   CreateContractsDto,
-  ContractsDetailDto,
 } from 'src/database/dto/contracts.dto';
 import { Contracts, UserServices } from '@prisma/client';
 import { ContractsResponseContractItemDto } from 'src/domain/contracts/dto/contracts-response-contract-item.dto';
@@ -48,16 +47,14 @@ export class ContractsService {
       offset: body.offset,
     };
     const totalCount = await this.contractsDao.countContracts(query);
-    const contracts = (await this.contractsDao.selectContracts(
-      query,
-    )) as ContractsDetailDto[];
+    const contracts = await this.contractsDao.selectContracts(query);
 
     // レスポンスDTOに詰め替え
     const resContracts: ContractsResponseContractItemDto[] = contracts.map(
       (item) => {
         return {
           id: item.id,
-          usersId: item.usersId,
+          usersName: item.userServices.users.name,
           userServicesId: item.userServicesId,
           quantity: item.quantity,
           name: item.userServices.services.name,
@@ -91,7 +88,7 @@ export class ContractsService {
 
     const response = new ContractsDetailResponseDto({
       id: contract.id,
-      usersId: contract.usersId,
+      usersName: contract.userServices.users.name,
       userServicesId: contract.userServicesId,
       quantity: contract.quantity,
       name: contract.userServices.services.name,

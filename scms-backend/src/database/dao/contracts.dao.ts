@@ -82,7 +82,9 @@ export class ContractsDao {
    * @param dto 契約の検索用DTO
    * @returns 取得したテーブルの配列(関連テーブル含む)
    */
-  async selectContracts(dto: SelectContractsDto): Promise<Contracts[]> {
+  async selectContracts(
+    dto: SelectContractsDto,
+  ): Promise<ContractsDetailDto[]> {
     try {
       const query: Prisma.ContractsFindManyArgs = {
         where: {
