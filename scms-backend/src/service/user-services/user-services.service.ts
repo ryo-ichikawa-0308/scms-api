@@ -95,6 +95,7 @@ export class UserServicesService {
       name: userService.services.name,
       description: userService.services.description,
       price: userService.services.price,
+      stock: userService.stock,
       unit: userService.services.unit,
     });
   }

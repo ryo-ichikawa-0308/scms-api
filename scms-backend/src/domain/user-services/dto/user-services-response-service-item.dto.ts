@@ -34,6 +34,11 @@ export class UserServicesResponseServiceItemDto {
   @IsNumber()
   price?: number;
 
+  /** 在庫数 */
+  @IsOptional()
+  @IsNumber()
+  stock?: number;
+
   /** 単位 */
   @IsOptional()
   @IsString()
