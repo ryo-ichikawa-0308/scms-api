@@ -33,6 +33,7 @@ const mockDetailDto: UserServicesDetailDto = {
   id: MOCK_USER_SERVICE_ID,
   usersId: MOCK_USER_ID,
   servicesId: MOCK_SERVICE_ID,
+  stock: 10,
   services: {
     id: MOCK_SERVICE_ID,
     name: 'Test Service Name',
@@ -40,6 +41,9 @@ const mockDetailDto: UserServicesDetailDto = {
     price: 100,
     unit: '回',
     isDeleted: false,
+  },
+  users: {
+    name: '提供者名',
   },
 } as unknown as UserServicesDetailDto;
 

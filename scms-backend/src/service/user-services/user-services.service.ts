@@ -11,7 +11,6 @@ import { UserServicesDetailResponseDto } from '../../domain/user-services/dto/us
 import {
   CreateUserServicesDto,
   SelectUserServicesDto,
-  UserServicesDetailDto,
 } from 'src/database/dto/user_services.dto';
 import { UserServicesResponseServiceItemDto } from 'src/domain/user-services/dto/user-services-response-service-item.dto';
 import { CommonService } from '../common/common.service';
@@ -44,9 +43,7 @@ export class UserServicesService {
     };
 
     // 2. DatabaseModule (DAO) を呼び出し、計数とDB検索を実行
-    const services = (await this.userServicesDao.selectUserServices(
-      selectDto,
-    )) as UserServicesDetailDto[];
+    const services = await this.userServicesDao.selectUserServices(selectDto);
     const totalCount = await this.userServicesDao.countUserServices(selectDto);
 
     // 3. 検索結果をResponseDtoへ詰め替え (TableDto -> ResponseDto)
@@ -54,7 +51,7 @@ export class UserServicesService {
       (item) => {
         return {
           id: item.id,
-          usersId: item.usersId,
+          usersName: item.users.name,
           servicesId: item.servicesId,
           name: item.services.name,
           description: item.services.description,
@@ -93,11 +90,12 @@ export class UserServicesService {
     // 2. 検索結果をResponseDtoへ詰め替え (TableDto -> ResponseDto)
     return new UserServicesDetailResponseDto({
       id: userService.id,
-      usersId: userService.usersId,
+      usersName: userService.users.name,
       servicesId: userService.servicesId,
       name: userService.services.name,
       description: userService.services.description,
       price: userService.services.price,
+      stock: userService.stock,
       unit: userService.services.unit,
     });
   }
