@@ -9,10 +9,10 @@ export class ContractsResponseContractItemDto {
   @IsString()
   id?: string;
 
-  /** ユーザーID */
+  /** ユーザー名 */
   @IsOptional()
   @IsString()
-  usersId?: string;
+  usersName?: string;
 
   /** ユーザー提供サービスID */
   @IsOptional()

@@ -9,10 +9,10 @@ export class UserServicesResponseServiceItemDto {
   @IsString()
   id?: string;
 
-  /** ユーザーID */
+  /** ユーザー名 */
   @IsOptional()
   @IsString()
-  usersId?: string;
+  usersName?: string;
 
   /** サービスID */
   @IsOptional()
@@ -33,6 +33,11 @@ export class UserServicesResponseServiceItemDto {
   @IsOptional()
   @IsNumber()
   price?: number;
+
+  /** 在庫数 */
+  @IsOptional()
+  @IsNumber()
+  stock?: number;
 
   /** 単位 */
   @IsOptional()

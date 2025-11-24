@@ -117,7 +117,7 @@ export class UserServicesDao {
    */
   async selectUserServices(
     dto: SelectUserServicesDto,
-  ): Promise<UserServices[]> {
+  ): Promise<UserServicesDetailDto[]> {
     try {
       const query: Prisma.UserServicesFindManyArgs = {
         where: {
@@ -139,7 +139,9 @@ export class UserServicesDao {
       query.skip = dto.offset;
       query.take = dto.limit;
       query.orderBy = orderBy;
-      const userServices = await this.prisma.userServices.findMany(query);
+      const userServices = (await this.prisma.userServices.findMany(
+        query,
+      )) as UserServicesDetailDto[];
       return userServices;
     } catch (e) {
       throw new InternalServerErrorException(
