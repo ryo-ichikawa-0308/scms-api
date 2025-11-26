@@ -19,18 +19,28 @@ export class ContractsResponseContractItemDto {
   @IsString()
   userServicesId?: string;
 
-  /** 契約数 */
-  @IsOptional()
-  @IsNumber()
-  quantity?: number;
-
   /** サービス名 */
   @IsOptional()
   @IsString()
   name?: string;
 
+  /** 単価 */
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
   /** 単位 */
   @IsOptional()
   @IsString()
   unit?: string;
+
+  /** 契約数 */
+  @IsOptional()
+  @IsNumber()
+  quantity?: number;
+
+  /** 在庫数 */
+  @IsOptional()
+  @IsNumber()
+  stock?: number;
 }
