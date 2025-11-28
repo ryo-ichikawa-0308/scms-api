@@ -22,6 +22,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
       inject: [PrismaService],
     },
   ],
-  exports: [],
+  exports: [UserServicesOrchestrator], // InitBatchModuleで使用するためにエクスポート
 })
 export class UserServicesDomainModule {}

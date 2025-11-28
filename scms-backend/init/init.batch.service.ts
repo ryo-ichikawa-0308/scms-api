@@ -1,6 +1,4 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { UsersOrchestrator } from 'src/domain/users/users.orchestrator';
 import { ServicesOrchestrator } from 'src/domain/services/services.orchestrator';
 import { UserServicesOrchestrator } from 'src/domain/user-services/user-services.orchestrator';
@@ -8,6 +6,9 @@ import { UserServicesOrchestrator } from 'src/domain/user-services/user-services
 import { UsersCreateRequestDto } from 'src/domain/users/dto/users-create-request.dto';
 import { ServicesCreateRequestDto } from 'src/domain/services/dto/services-create-request.dto';
 import { UserServicesCreateRequestDto } from 'src/domain/user-services/dto/user-services-create-request.dto';
+
+import { USERS_INIT_DATA } from './data/users';
+import { SERVICES_INIT_DATA } from './data/services';
 
 interface UserData {
   name: string;
@@ -45,24 +46,6 @@ export class InitBatchService {
   }
 
   /**
-   * JSONファイルを読み込む関数
-   * @param filename ファイル名
-   * @returns 読み込んだJSONオブジェクト
-   */
-  private loadJson<T>(filename: string): T {
-    const dataDir = path.join(__dirname, 'data');
-    const filePath = path.join(dataDir, filename);
-
-    if (!fs.existsSync(filePath)) {
-      this.logger.error(`データファイルが見つかりません: ${filePath}`);
-      throw new Error('初期データファイルの読み込み失敗');
-    }
-
-    const fileContents = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(fileContents) as T;
-  }
-
-  /**
    * 初期データを登録するバッチ処理のメイン関数
    */
   async initializeData(): Promise<void> {
@@ -70,12 +53,11 @@ export class InitBatchService {
 
     try {
       // 1. users.jsonの読み込み
-      const users: UserData[] = this.loadJson<UserData[]>('users.json');
+      const users: UserData[] = USERS_INIT_DATA;
       this.logger.log(`ユーザーデータ ${users.length} 件を読み込みました。`);
 
       // 2. services.jsonの読み込み
-      const allServicesData: ServicesData =
-        this.loadJson<ServicesData>('services.json');
+      const allServicesData: ServicesData = SERVICES_INIT_DATA;
       this.logger.log(`サービスデータ（グループ化）を読み込みました。`);
 
       // 3. ユーザーの登録とサービスへの紐付け処理
@@ -137,6 +119,12 @@ export class InitBatchService {
 
       this.logger.log('\n--- 初期データ登録バッチ処理完了（成功）---');
     } catch (error) {
+      if (error instanceof ConflictException) {
+        this.logger.warn(
+          '\n--- 重複データが発見されました。初期データ登録済みと判断し、データ登録をスキップします。 ---',
+        );
+        return;
+      }
       this.logger.error('\n--- 初期データ登録バッチ処理エラー ---');
       this.logger.error(error);
       throw error;

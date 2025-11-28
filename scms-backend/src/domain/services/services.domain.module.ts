@@ -19,6 +19,6 @@ import { PRISMA_TRANSACTION } from 'src/prisma/prisma.type';
       inject: [PrismaService],
     },
   ],
-  exports: [],
+  exports: [ServicesOrchestrator], // InitBatchModuleで使用するためにエクスポート
 })
 export class ServicesDomainModule {}
