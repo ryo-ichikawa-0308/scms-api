@@ -118,6 +118,9 @@ export class InitBatchService {
       }
 
       this.logger.log('\n--- 初期データ登録バッチ処理完了（成功）---');
+      this.logger.log(
+        '\n ユーザーID: sample@example.com パスワード: password でログインしてください。',
+      );
     } catch (error) {
       if (error instanceof ConflictException) {
         this.logger.warn(
