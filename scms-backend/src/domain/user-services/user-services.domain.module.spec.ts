@@ -23,7 +23,7 @@ describe('UserServicesDomainModule (Domain Module) Test', () => {
           inject: [PrismaService],
         },
       ],
-      exports: [],
+      exports: [UserServicesOrchestrator],
     })
       .overrideProvider('PrismaTransaction')
       .useValue({ $transaction: jest.fn() })

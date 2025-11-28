@@ -52,6 +52,7 @@ const mockContractDetailDto: ContractsDetailDto = {
     services: {
       id: 's-id',
       name: 'Mock Service Name',
+      price: 1000,
       unit: '時間',
     },
     users: {

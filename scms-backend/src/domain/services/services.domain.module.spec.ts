@@ -23,7 +23,7 @@ describe('ServicesDomainModule (Module) Test', () => {
           inject: [PrismaService],
         },
       ],
-      exports: [],
+      exports: [ServicesOrchestrator],
     }).compile();
 
     expect(module.get(ServicesController)).toBeInstanceOf(ServicesController);

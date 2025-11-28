@@ -58,7 +58,9 @@ export class ContractsService {
           userServicesId: item.userServicesId,
           quantity: item.quantity,
           name: item.userServices.services.name,
+          price: item.userServices.services.price,
           unit: item.userServices.services.unit,
+          stock: item.userServices.stock,
         };
       },
     );
@@ -92,7 +94,9 @@ export class ContractsService {
       userServicesId: contract.userServicesId,
       quantity: contract.quantity,
       name: contract.userServices.services.name,
+      price: contract.userServices.services.price,
       unit: contract.userServices.services.unit,
+      stock: contract.userServices.stock,
     });
 
     return response;
