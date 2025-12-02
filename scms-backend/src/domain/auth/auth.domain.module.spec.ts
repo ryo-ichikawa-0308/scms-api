@@ -5,6 +5,7 @@ import { AuthServiceModule } from '../../service/auth/auth.service.module';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PRISMA_TRANSACTION } from 'src/prisma/prisma.type';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { ConfigModule } from '@nestjs/config';
 
 describe('AuthDomainModule (Module) Test', () => {
   let module: TestingModule;
@@ -13,7 +14,7 @@ describe('AuthDomainModule (Module) Test', () => {
   it('should compile and resolve all dependencies correctly', async () => {
     // Setup
     module = await Test.createTestingModule({
-      imports: [AuthServiceModule, PrismaModule],
+      imports: [AuthServiceModule, PrismaModule, ConfigModule],
       controllers: [AuthController],
       providers: [
         AuthOrchestrator,

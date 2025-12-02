@@ -29,7 +29,7 @@ curl -X POST \
      -i \
      -c /workspaces/sandbox/cookiejar.txt \
      -H "Content-Type: application/json" \
-     --data '{"email": "yourmail@example.com", "password": "password"}' \
+     --data '{"email": "your_new_address@example.com", "password": "password"}' \
      http://localhost:3000/api/v1/users
 ```
 
@@ -40,7 +40,7 @@ curl -X POST \
      -i \
      -c /workspaces/sandbox/cookiejar.txt \
      -H "Content-Type: application/json" \
-     --data '{"email": "yourmail@example.com", "password": "password"}' \
+     --data '{"email": "sample@example.com", "password": "password"}' \
      http://localhost:3000/api/v1/auth/login
 ```
 
@@ -64,9 +64,9 @@ curl -X POST \
 ```bash
 curl -X POST \
      -i \
-     -c /workspaces/sandbox/cookiejar.txt \
+     -b /workspaces/sandbox/cookiejar.txt \
      -H "Content-Type: application/json" \
-     -H "Authorization: Bearer REFRESH_TOKEN" \
+     -c /workspaces/sandbox/cookiejar.txt \
      --compressed \
      -d '{}' \
      http://localhost:3000/api/v1/auth/refresh
