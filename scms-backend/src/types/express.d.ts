@@ -3,6 +3,7 @@ import { JwtPayload } from 'src/types/jwt-payload';
 declare module 'express' {
   interface Request {
     user?: Express.User;
+    cookie: Record<string, string | undefined>;
   }
 }
 declare namespace Express {

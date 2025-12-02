@@ -16,7 +16,7 @@ const MOCK_PAYLOAD: JwtPayload = {
   username: MOCK_USERNAME,
 };
 const MOCK_REFRESH_TOKEN = 'mock.refresh.token.abcdefg';
-const MOCK_AUTH_HEADER = `Bearer ${MOCK_REFRESH_TOKEN}`;
+const MOCK_AUTH_HEADER = `refresh_token=${MOCK_REFRESH_TOKEN}`;
 
 // ユーザーレコードのモック
 const mockUserRecord: Partial<Users> = {
@@ -25,9 +25,9 @@ const mockUserRecord: Partial<Users> = {
 } as Partial<Users>;
 
 // リクエストのモック
-const createMockRequest = (authorization: string | undefined): Request =>
+const createMockRequest = (cookie: string | undefined): Request =>
   ({
-    headers: { authorization },
+    headers: { cookie },
   }) as unknown as Request;
 
 // 依存関係のモック
@@ -40,7 +40,14 @@ const mockJwtService = {
 };
 
 const mockConfigService = {
-  getOrThrow: jest.fn().mockReturnValue('MOCK_REFRESH_TOKEN_SECRET'),
+  getOrThrow: jest.fn((key: string) => {
+    if (key === 'REFRESH_TOKEN_KEY') {
+      return 'refresh_token';
+    } else if (key === 'REFRESH_TOKEN_SECRET') {
+      return 'mock-refresh-token-secret';
+    }
+    return null;
+  }),
 };
 
 describe('RefreshTokenStrategy (Passport Strategy) Test', () => {
@@ -86,20 +93,20 @@ describe('RefreshTokenStrategy (Passport Strategy) Test', () => {
     });
 
     describe('異常系', () => {
-      it('Authorizationヘッダが無い場合', async () => {
+      it('Cookieが見つからない場合', async () => {
         const req = createMockRequest(undefined);
 
         await expect(strategy.validate(req, MOCK_PAYLOAD)).rejects.toThrow(
           UnauthorizedException,
         );
         await expect(strategy.validate(req, MOCK_PAYLOAD)).rejects.toThrow(
-          'Authorizationヘッダーがありません。',
+          '無効なリフレッシュトークン形式です。',
         );
         expect(usersDao.selectUsersById).not.toHaveBeenCalled();
       });
 
       it('トークン形式が無効', async () => {
-        const req = createMockRequest('Bearer ');
+        const req = createMockRequest('invalid_token_format');
 
         await expect(strategy.validate(req, MOCK_PAYLOAD)).rejects.toThrow(
           UnauthorizedException,

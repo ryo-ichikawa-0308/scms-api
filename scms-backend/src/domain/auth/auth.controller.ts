@@ -16,6 +16,7 @@ import { AuthLoginRequestDto } from './dto/auth-login-request.dto';
 import { AuthLoginResponseDto } from './dto/auth-login-response.dto';
 import { AuthOrchestrator } from './auth.orchestrator';
 import { AuthRefreshResponseDto } from './dto/auth-refresh-response.dto';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * 認証系APIのControllerクラス
@@ -23,7 +24,10 @@ import { AuthRefreshResponseDto } from './dto/auth-refresh-response.dto';
 @Controller('auth')
 @UseInterceptors(ClassSerializerInterceptor)
 export class AuthController {
-  constructor(private readonly authOrchestrator: AuthOrchestrator) {}
+  constructor(
+    private readonly authOrchestrator: AuthOrchestrator,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * ログイン
@@ -40,7 +44,9 @@ export class AuthController {
     const loginDto = await this.authOrchestrator.login(body);
 
     // 2. リフレッシュトークンをCookieに保存
-    res.cookie('refresh_token', loginDto.refreshToken, {
+    const refreshTokenKey =
+      this.configService.getOrThrow<string>('REFRESH_TOKEN_KEY');
+    res.cookie(refreshTokenKey, loginDto.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
@@ -61,11 +67,23 @@ export class AuthController {
   @Post('logout')
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(@Req() req: Request): Promise<void> {
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
     // 認証情報からユーザーIDを取得
     const userId = req.user?.userId ?? '';
     // 処理委譲 (POST/logout -> Orchestrator)
     await this.authOrchestrator.logout(userId);
+    // リフレッシュトークンを無効化する
+    const refreshTokenKey =
+      this.configService.getOrThrow<string>('REFRESH_TOKEN_KEY');
+    res.cookie(refreshTokenKey, '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      expires: new Date(0),
+    });
   }
 
   /**
@@ -87,7 +105,9 @@ export class AuthController {
     const refreshDto = await this.authOrchestrator.refresh(userId, userName);
 
     // 3. リフレッシュトークンをCookieに保存
-    res.cookie('refresh_token', refreshDto.refreshToken, {
+    const refreshTokenKey =
+      this.configService.getOrThrow<string>('REFRESH_TOKEN_KEY');
+    res.cookie(refreshTokenKey, refreshDto.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',

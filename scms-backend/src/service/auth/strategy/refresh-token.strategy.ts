@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Strategy } from 'passport-jwt';
 import { JwtPayload } from '../../../types/jwt-payload';
 import { UsersDao } from 'src/database/dao/users.dao';
 import { Request } from 'express';
@@ -15,11 +15,18 @@ export class RefreshTokenStrategy extends PassportStrategy(
   constructor(
     private readonly usersDao: UsersDao,
     private readonly jwtService: JwtService,
-    configService: ConfigService,
+    private readonly configService: ConfigService,
   ) {
     super({
-      // AuthorizationヘッダーのBearerスキームからJWTを抽出する
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: (req: Request) => {
+        const refreshTokenKey =
+          configService.getOrThrow<string>('REFRESH_TOKEN_KEY');
+        const refreshToken = this.getRefreshTokenFromCookie(
+          req.headers.cookie || '',
+          refreshTokenKey,
+        );
+        return refreshToken;
+      },
       secretOrKey: configService.getOrThrow<string>('REFRESH_TOKEN_SECRET'),
       ignoreExpiration: false,
       passReqToCallback: true,
@@ -33,17 +40,13 @@ export class RefreshTokenStrategy extends PassportStrategy(
    * @returns 認証成功したら、ペイロードのデータを返す。
    */
   async validate(req: Request, payload: JwtPayload) {
-    // リクエストヘッダからAuthorizationを取得
-    const authorizationHeader = req.headers['authorization'];
-    if (!authorizationHeader) {
-      throw new UnauthorizedException('Authorizationヘッダーがありません。');
-    }
     // リフレッシュトークンを取得
-    const refreshToken =
-      typeof authorizationHeader === 'string'
-        ? authorizationHeader.replace('Bearer', '').trim()
-        : null;
-
+    const refreshTokenKey =
+      this.configService.getOrThrow<string>('REFRESH_TOKEN_KEY');
+    const refreshToken = this.getRefreshTokenFromCookie(
+      req.headers.cookie || '',
+      refreshTokenKey,
+    );
     if (!refreshToken) {
       throw new UnauthorizedException('無効なリフレッシュトークン形式です。');
     }
@@ -70,5 +73,21 @@ export class RefreshTokenStrategy extends PassportStrategy(
     const payload = { userId, username };
     const refreshToken = this.jwtService.sign(payload);
     return refreshToken;
+  }
+
+  /**
+   * Cookie文字列からリフレッシュトークンを抽出する
+   * @param cookieString Cookie文字列
+   * @param refreshTokenKey 環境変数から取得したリフレッシュトークンのキー
+   * @returns リフレッシュトークン
+   */
+  private getRefreshTokenFromCookie(
+    cookieString: string,
+    refreshTokenKey: string,
+  ): string {
+    const regExp = new RegExp(refreshTokenKey + '=([^;]+)');
+    const match = cookieString.match(regExp);
+    const refreshTokenRegExp = match ? match[1] : null;
+    return refreshTokenRegExp || '';
   }
 }
