@@ -5,12 +5,13 @@ import { AuthServiceModule } from '../../service/auth/auth.service.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PRISMA_TRANSACTION } from 'src/prisma/prisma.type';
+import { ConfigModule } from '@nestjs/config';
 
 /**
  * Authドメインモジュール
  */
 @Module({
-  imports: [AuthServiceModule, PrismaModule],
+  imports: [AuthServiceModule, PrismaModule, ConfigModule],
   controllers: [AuthController],
   providers: [
     AuthOrchestrator,

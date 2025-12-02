@@ -8,6 +8,7 @@ import type { Request, Response } from 'express';
 import { AuthLoginRequestDto } from './dto/auth-login-request.dto';
 import { AuthLoginResponseDto } from './dto/auth-login-response.dto';
 import { AuthRefreshResponseDto } from './dto/auth-refresh-response.dto';
+import { ConfigService } from '@nestjs/config';
 
 // --- モックデータ ---
 const MOCK_AUTH_USER_ID = 'auth-user-id-001';
@@ -61,9 +62,14 @@ const mockResponse = () =>
     send: jest.fn(),
   }) as unknown as Response;
 
+const mockConfigService = {
+  getOrThrow: jest.fn(),
+};
+
 describe('AuthController (Controller) Test', () => {
   let controller: AuthController;
   let authOrchestrator: typeof mockAuthOrchestrator;
+  let configService: ConfigService;
   let res: Response;
   beforeAll(() => {
     jest.useFakeTimers();
@@ -73,6 +79,7 @@ describe('AuthController (Controller) Test', () => {
       controllers: [AuthController],
       providers: [
         { provide: AuthOrchestrator, useValue: mockAuthOrchestrator },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     })
       .overrideGuard(AuthGuard('jwt'))
@@ -83,6 +90,8 @@ describe('AuthController (Controller) Test', () => {
 
     controller = module.get<AuthController>(AuthController);
     authOrchestrator = module.get(AuthOrchestrator);
+    configService = module.get<ConfigService>(ConfigService);
+    jest.spyOn(configService, 'getOrThrow').mockReturnValue('refresh_token');
     res = mockResponse();
 
     jest.clearAllMocks();
@@ -146,9 +155,15 @@ describe('AuthController (Controller) Test', () => {
         authOrchestrator.logout.mockResolvedValue(undefined);
         const req = mockRequest(MOCK_AUTH_USER_ID) as Request;
 
-        const result = await controller.logout(req);
+        const result = await controller.logout(req, res);
 
         expect(authOrchestrator.logout).toHaveBeenCalledWith(MOCK_AUTH_USER_ID);
+        expect(res.cookie).toHaveBeenCalledWith('refresh_token', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          expires: new Date(0),
+        });
 
         expect(result).toBeUndefined();
       });
@@ -162,7 +177,7 @@ describe('AuthController (Controller) Test', () => {
         );
         const req = mockRequest(MOCK_AUTH_USER_ID) as Request;
 
-        await expect(controller.logout(req)).rejects.toThrow(
+        await expect(controller.logout(req, res)).rejects.toThrow(
           UnauthorizedException,
         );
       });
