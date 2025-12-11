@@ -243,7 +243,7 @@ export type ContractsDetailDto = Contracts & {
 };
 ```
 
-### 5.2 データ登録メソッド(`create` `update` `delete`)
+### 5.2 データ登録メソッド(`create`)
 
 データ登録メソッドは、下記の通り基本メソッドが提供されている。関連テーブルを含めた同時登録(Nested Writes)は、サービス層との責任範囲が曖昧となるため、禁止する。
 
@@ -265,7 +265,7 @@ createTableName(prismaTx: PrismaTransaction, dto: CreateTableNameDto): Promise<T
   - **外部キー違反(P2003)** BadRequestExceptionにラップして例外送出する。
   - **接続エラーなど、予期せぬ例外** InternalServerErrorExceptionにラップして例外送出する。
 
-### 5.2 データ更新・削除メソッド(`update` `delete`)
+### 5.3 データ更新・削除メソッド(`update` `delete`)
 
 更新・削除メソッドは、下記とおり基本メソッドが提供されている。これらのメソッドを実行する前に、ビジネスロジック側であらかじめロック取得メソッドを実行し、更新・削除対象レコードのロックを取得していることが前提である。
 
@@ -331,7 +331,7 @@ hardDeleteTableName(prismaTx: PrismaTransaction, id: string): Promise<TableName>
   - **物理削除対象のレコードが見つからない** NotFoundExceptionにラップして例外送出する。
   - **接続エラーなど、予期せぬ例外** InternalServerErrorExceptionにラップして例外送出する。
 
-### 5.3 テーブルロック取得
+### 5.4 テーブルロック取得
 
 更新・削除を行うテーブルのDAOには、下記のロック取得メソッドを実装する。`$queryRaw`によるロック取得がDBMSに依存するため、ロック取得メソッドは手動で実装する。
 
